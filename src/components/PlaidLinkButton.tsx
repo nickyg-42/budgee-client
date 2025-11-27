@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { Plus } from 'lucide-react';
 import { apiService } from '../services/api';
@@ -10,18 +10,24 @@ interface PlaidLinkButtonProps {
 }
 
 export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const createLinkToken = useCallback(async () => {
-    try {
-      const response = await apiService.createLinkToken();
-      setLinkToken(response.link_token);
-    } catch (error) {
-      console.error('Failed to create link token:', error);
-      toast.error('Failed to initialize bank connection');
-      throw error;
-    }
+  // Create link token when component mounts
+  useEffect(() => {
+    const createLinkToken = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiService.createLinkToken();
+        setLinkToken(response.link_token);
+      } catch (error) {
+        console.error('Failed to create link token:', error);
+        toast.error('Failed to initialize bank connection');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    createLinkToken();
   }, []);
 
   const onPlaidSuccess = useCallback((public_token: string, metadata: any) => {
@@ -36,28 +42,22 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
     onExit?.();
   }, [onExit]);
 
+  const onPlaidEvent = useCallback((eventName: string, metadata: any) => {
+    // Log Plaid Link events for debugging
+    console.log('Plaid Link event:', eventName, metadata);
+  }, []);
+
   const config = {
     token: linkToken,
     onSuccess: onPlaidSuccess,
     onExit: onPlaidExit,
+    onEvent: onPlaidEvent,
   };
 
   const { open, ready } = usePlaidLink(config);
 
-  const handleClick = async () => {
-    if (!linkToken) {
-      try {
-        setIsLoading(true);
-        await createLinkToken();
-      } catch (error) {
-        setIsLoading(false);
-        return;
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    if (ready) {
+  const handleClick = () => {
+    if (ready && linkToken) {
       open();
     }
   };
@@ -65,7 +65,7 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
   return (
     <button
       onClick={handleClick}
-      disabled={isLoading || (!linkToken && !ready)}
+      disabled={!ready || isLoading}
       className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
     >
       {isLoading ? (

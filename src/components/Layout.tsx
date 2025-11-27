@@ -25,6 +25,11 @@ export const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
+  console.log('Layout component - user data:', user);
+  console.log('Layout component - user email:', user?.email);
+  console.log('Layout component - user username:', user?.username);
+  console.log('Layout component - user first_name:', user?.first_name);
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -68,7 +73,9 @@ export const Layout = ({ children }: LayoutProps) => {
               {/* This would be populated based on the current page */}
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user?.email || 'Loading...'}</span>
+              <span className="text-sm text-gray-600">
+                {user ? (user.email || user.username || user.first_name || 'User') : 'Loading...'}
+              </span>
               <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user ? user.first_name.charAt(0).toUpperCase() : 'U'}

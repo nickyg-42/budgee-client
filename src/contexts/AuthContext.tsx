@@ -49,6 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userFromJWT = extractUserFromJWT(storedToken);
           if (userFromJWT) {
             console.log('User data extracted from JWT during initialization:', userFromJWT);
+            console.log('User email from JWT:', userFromJWT.email);
+            console.log('User username from JWT:', userFromJWT.username);
+            console.log('User first_name from JWT:', userFromJWT.first_name);
             setUser(userFromJWT);
             setToken(storedToken);
           } else {
@@ -94,6 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userFromJWT = extractUserFromJWT(token);
       if (userFromJWT) {
         console.log('User data extracted from JWT:', userFromJWT);
+        console.log('User email from login JWT:', userFromJWT.email);
+        console.log('User username from login JWT:', userFromJWT.username);
+        console.log('User first_name from login JWT:', userFromJWT.first_name);
         setUser(userFromJWT);
       } else {
         console.error('Failed to extract user data from JWT');

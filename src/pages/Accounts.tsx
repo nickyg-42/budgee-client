@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { PlaidLinkButton } from '../components/PlaidLinkButton';
@@ -13,7 +13,10 @@ export const Accounts = () => {
   const { accounts, plaidItems, setAccounts, setPlaidItems } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [isCreatingLinkToken, setIsCreatingLinkToken] = useState(false);
 
+  // Only load existing data on mount - no automatic link token creation
   useEffect(() => {
     loadAccounts();
     loadPlaidItems();
@@ -22,6 +25,7 @@ export const Accounts = () => {
   const loadAccounts = async () => {
     try {
       setIsLoading(true);
+      setHasError(false);
       // Load accounts from all connected items
       const items = await apiService.getPlaidItems();
       
@@ -50,6 +54,7 @@ export const Accounts = () => {
       setAccounts(allAccounts || []);
     } catch (error) {
       console.error('Failed to load accounts:', error);
+      setHasError(true);
       // Don't show error toast for new users - it's expected they have no accounts
       if (error instanceof Error && !error.message.includes('No items found')) {
         toast.error('Failed to load accounts');
@@ -72,6 +77,34 @@ export const Accounts = () => {
     }
   };
 
+  const createLinkToken = async () => {
+    try {
+      setIsCreatingLinkToken(true);
+      const response = await apiService.createLinkToken();
+      setLinkToken(response.link_token);
+      return response.link_token;
+    } catch (error) {
+      console.error('Failed to create link token:', error);
+      toast.error('Failed to initialize bank connection');
+      throw error;
+    } finally {
+      setIsCreatingLinkToken(false);
+    }
+  };
+
+  const handleFirstAccountConnection = useCallback(async () => {
+    try {
+      if (!linkToken) {
+        // Only create token if we don't have one
+        await createLinkToken();
+        // The usePlaidLink hook will automatically pick up the new token
+      }
+    } catch (error) {
+      console.error('Failed to create link token:', error);
+      toast.error('Failed to initialize bank connection');
+    }
+  }, [linkToken]);
+
   const handlePlaidSuccess = async (publicToken: string) => {
     try {
       setIsLoading(true);
@@ -93,6 +126,24 @@ export const Accounts = () => {
       setIsLoading(false);
     }
   };
+
+  // Plaid Link configuration for the main page - must be after handlePlaidSuccess is defined
+  const config = {
+    token: linkToken,
+    onSuccess: handlePlaidSuccess,
+    onExit: (err: any, metadata: any) => {
+      if (err) {
+        console.error('Plaid Link exit error:', err);
+        toast.error('Bank connection cancelled or failed');
+      }
+    },
+    onEvent: (eventName: string, metadata: any) => {
+      // Log Plaid Link events for debugging
+      console.log('Plaid Link event:', eventName, metadata);
+    },
+  };
+
+  const { open, ready } = usePlaidLink(config);
 
   const totalNetWorth = (accounts || []).reduce((sum, account) => {
     return sum + (account?.balance?.current || 0);
@@ -139,8 +190,45 @@ export const Accounts = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
+          <p className="text-gray-600 text-center">
+            {accounts.length === 0 ? 'Loading your accounts...' : 'Refreshing account data...'}
+          </p>
+          <p className="text-sm text-gray-500 text-center mt-2">
+            This may take a moment for first-time users
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error state - show retry option
+  if (hasError && accounts.length === 0) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <DollarSign className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Accounts</h3>
+          <p className="text-gray-600 mb-6 text-center max-w-md">
+            We couldn't load your account information. This might be due to a temporary connection issue.
+          </p>
+          <div className="flex space-x-3">
+            <button
+              onClick={loadAccounts}
+              className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       </Layout>
     );
@@ -154,7 +242,8 @@ export const Accounts = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Net Worth Summary</h3>
-              <PlaidLinkButton onSuccess={handlePlaidSuccess} />
+              {/* Only show the button in header if accounts exist - avoid duplicate Plaid instances */}
+              {accounts.length > 0 && <PlaidLinkButton onSuccess={handlePlaidSuccess} />}
             </div>
           </CardHeader>
           <CardContent>
@@ -167,9 +256,36 @@ export const Accounts = () => {
                 {accounts.length} connected account{accounts.length !== 1 ? 's' : ''}
               </p>
               {accounts.length === 0 && (
-                <p className="text-sm text-pink-600 mt-2 font-medium">
-                  Connect your first bank account to get started!
-                </p>
+                <div className="mt-4">
+                  <p className="text-sm text-pink-600 mb-3 font-medium">
+                    Connect your first bank account to get started!
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (ready && linkToken) {
+                        // If we have a token and Plaid Link is ready, open it
+                        open();
+                      } else if (!linkToken && !isCreatingLinkToken) {
+                        // If no token exists, create one first
+                        handleFirstAccountConnection();
+                      }
+                    }}
+                    disabled={isCreatingLinkToken}
+                    className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
+                  >
+                    {isCreatingLinkToken ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Initializing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Connect Bank Account</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </CardContent>
@@ -212,7 +328,7 @@ export const Accounts = () => {
         )}
 
         {/* Accounts by Type */}
-        {Object.entries(accountsByType).map(([type, typeAccounts]) => (
+        {Object.entries(accountsByType).length > 0 && Object.entries(accountsByType).map(([type, typeAccounts]) => (
           <Card key={type}>
             <CardHeader>
               <div className="flex items-center space-x-2">
@@ -229,14 +345,16 @@ export const Accounts = () => {
                 {typeAccounts.map((account) => (
                   <div key={account.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-900">{account.name}</p>
-                      <p className="text-sm text-gray-600">{account.subtype} ••••{account.mask}</p>
+                      <p className="font-medium text-gray-900">{account.name || 'Unknown Account'}</p>
+                      <p className="text-sm text-gray-600">
+                        {account.subtype || account.type || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        {formatCurrency(account.balance.current)}
+                        {formatCurrency(account?.balance?.current || 0)}
                       </p>
-                      {account.balance.available !== undefined && (
+                      {account?.balance?.available !== undefined && (
                         <p className="text-sm text-gray-600">
                           Available: {formatCurrency(account.balance.available)}
                         </p>
@@ -249,7 +367,7 @@ export const Accounts = () => {
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-900">Total {type}</span>
                     <span className="font-semibold text-gray-900">
-                      {formatCurrency(typeAccounts.reduce((sum, acc) => sum + acc.balance.current, 0))}
+                      {formatCurrency(typeAccounts.reduce((sum, acc) => sum + (acc?.balance?.current || 0), 0))}
                     </span>
                   </div>
                 </div>
@@ -258,7 +376,7 @@ export const Accounts = () => {
           </Card>
         ))}
 
-        {/* Empty State */}
+        {/* Empty State - Only show if we don't have the connect button in the Net Worth card */}
         {accounts.length === 0 && (
           <Card>
             <CardContent className="text-center py-12">
@@ -266,10 +384,15 @@ export const Accounts = () => {
                 <DollarSign className="w-8 h-8 text-pink-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Connected Accounts</h3>
-              <p className="text-gray-600 mb-6">
-                Connect your bank accounts to start tracking your net worth and transactions.
+              <p className="text-gray-600 mb-2">
+                Welcome to your financial dashboard! To get started, connect your first bank account.
               </p>
-              <PlaidLinkButton onSuccess={handlePlaidSuccess} />
+              <p className="text-sm text-gray-500 mb-6">
+                Once connected, you'll be able to track your net worth, view transactions, and manage your finances all in one place.
+              </p>
+              <div className="text-xs text-gray-400">
+                Your data is encrypted and secure. We use bank-level security to protect your information.
+              </div>
             </CardContent>
           </Card>
         )}
