@@ -25,11 +25,6 @@ export const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  console.log('Layout component - user data:', user);
-  console.log('Layout component - user email:', user?.email);
-  console.log('Layout component - user username:', user?.username);
-  console.log('Layout component - user first_name:', user?.first_name);
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}

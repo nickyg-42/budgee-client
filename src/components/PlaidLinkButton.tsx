@@ -59,13 +59,30 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
   const handleClick = () => {
     if (ready && linkToken) {
       open();
+    } else if (!linkToken && !isLoading) {
+      // If no token exists, create one first
+      const createToken = async () => {
+        try {
+          setIsLoading(true);
+          const response = await apiService.createLinkToken();
+          setLinkToken(response.link_token);
+          // The usePlaidLink hook will automatically reconfigure with the new token
+          // When ready becomes true, the next button click will open it
+        } catch (error) {
+          console.error('Failed to create link token:', error);
+          toast.error('Failed to initialize bank connection');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      createToken();
     }
   };
 
   return (
     <button
       onClick={handleClick}
-      disabled={!ready || isLoading}
+      disabled={isLoading}
       className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
     >
       {isLoading ? (

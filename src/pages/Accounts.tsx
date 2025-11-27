@@ -79,8 +79,10 @@ export const Accounts = () => {
 
   const createLinkToken = async () => {
     try {
+      console.log('Creating link token...');
       setIsCreatingLinkToken(true);
       const response = await apiService.createLinkToken();
+      console.log('Link token created:', response.link_token);
       setLinkToken(response.link_token);
       return response.link_token;
     } catch (error) {
@@ -95,9 +97,10 @@ export const Accounts = () => {
   const handleFirstAccountConnection = useCallback(async () => {
     try {
       if (!linkToken) {
-        // Only create token if we don't have one
+        // Create token first
         await createLinkToken();
-        // The usePlaidLink hook will automatically pick up the new token
+        // The token will be set in state and usePlaidLink will automatically reconfigure
+        // When ready becomes true, the next button click will open it
       }
     } catch (error) {
       console.error('Failed to create link token:', error);
@@ -144,6 +147,17 @@ export const Accounts = () => {
   };
 
   const { open, ready } = usePlaidLink(config);
+
+  // Handle opening Plaid Link when button is clicked and we have a token
+  const handleConnectClick = useCallback(() => {
+    console.log('Connect button clicked - linkToken:', linkToken, 'ready:', ready);
+    if (linkToken && ready) {
+      console.log('Opening Plaid Link...');
+      open();
+    } else if (!linkToken && !isCreatingLinkToken) {
+      handleFirstAccountConnection();
+    }
+  }, [linkToken, ready, open, isCreatingLinkToken]);
 
   const totalNetWorth = (accounts || []).reduce((sum, account) => {
     return sum + (account?.balance?.current || 0);
@@ -261,15 +275,7 @@ export const Accounts = () => {
                     Connect your first bank account to get started!
                   </p>
                   <button
-                    onClick={() => {
-                      if (ready && linkToken) {
-                        // If we have a token and Plaid Link is ready, open it
-                        open();
-                      } else if (!linkToken && !isCreatingLinkToken) {
-                        // If no token exists, create one first
-                        handleFirstAccountConnection();
-                      }
-                    }}
+                    onClick={handleConnectClick}
                     disabled={isCreatingLinkToken}
                     className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
                   >
