@@ -1,0 +1,54 @@
+import { jwtDecode } from 'jwt-decode';
+
+interface JWTPayload {
+  user_id?: number;
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  exp?: number;
+  iat?: number;
+}
+
+export const decodeJWT = (token: string): JWTPayload | null => {
+  try {
+    const decoded = jwtDecode<JWTPayload>(token);
+    console.log('JWT decoded successfully:', decoded);
+    return decoded;
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
+};
+
+export const extractUserFromJWT = (token: string) => {
+  const payload = decodeJWT(token);
+  
+  if (!payload) {
+    return null;
+  }
+
+  // Convert JWT payload to User interface
+  const user = {
+    id: payload.user_id || 0,
+    username: payload.username || '',
+    email: payload.email || '',
+    first_name: payload.first_name || '',
+    last_name: payload.last_name || '',
+    created_at: new Date().toISOString(), // JWT doesn't typically include creation date
+  };
+
+  console.log('User extracted from JWT:', user);
+  return user;
+};
+
+export const isJWTExpired = (token: string): boolean => {
+  const payload = decodeJWT(token);
+  
+  if (!payload || !payload.exp) {
+    return true; // Consider expired if we can't decode or no expiry
+  }
+
+  const currentTime = Math.floor(Date.now() / 1000);
+  return payload.exp < currentTime;
+};
