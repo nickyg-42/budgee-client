@@ -3,11 +3,44 @@ import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { User, Mail, Calendar, Shield, AtSign } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
+import { useEffect, useState } from 'react';
+import { apiService } from '../services/api';
+import { toast } from 'sonner';
+import { Modal } from '../components/ui/Modal';
 
 export const Profile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [profileUser, setProfileUser] = useState(user);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
-  if (!user) {
+  useEffect(() => {
+    let mounted = true;
+    const loadUser = async () => {
+      try {
+        const id = user?.id;
+        if (id && id > 0) {
+          const u = await apiService.getCurrentUser(id);
+          if (mounted) setProfileUser(u);
+        } else {
+          if (mounted) setProfileUser(user || null);
+        }
+      } catch (e) {
+        setProfileUser(user || null);
+      }
+    };
+    loadUser();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  if (!profileUser) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -18,6 +51,7 @@ export const Profile = () => {
   }
 
   return (
+    <>
     <Layout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
@@ -39,7 +73,7 @@ export const Profile = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Full Name</p>
-                    <p className="text-gray-900">{user.first_name} {user.last_name}</p>
+                    <p className="text-gray-900">{profileUser.first_name} {profileUser.last_name}</p>
                   </div>
                 </div>
 
@@ -49,7 +83,7 @@ export const Profile = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Username</p>
-                    <p className="text-gray-900">{user.username}</p>
+                    <p className="text-gray-900">{profileUser.username}</p>
                   </div>
                 </div>
 
@@ -59,7 +93,7 @@ export const Profile = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Email Address</p>
-                    <p className="text-gray-900">{user.email}</p>
+                    <p className="text-gray-900">{profileUser.email}</p>
                   </div>
                 </div>
 
@@ -69,7 +103,7 @@ export const Profile = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Member Since</p>
-                    <p className="text-gray-900">{formatDate(user.created_at)}</p>
+                    <p className="text-gray-900">{formatDate(profileUser.created_at)}</p>
                   </div>
                 </div>
 
@@ -112,17 +146,45 @@ export const Profile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => {
+                    setFirstName(profileUser.first_name || '');
+                    setLastName(profileUser.last_name || '');
+                    setEmail(profileUser.email || '');
+                    setIsEditOpen(true);
+                  }}
+                  className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <p className="font-medium text-gray-900">Update Profile</p>
                   <p className="text-sm text-gray-600">Change your name or email address</p>
                 </button>
                 
-                <button className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => {
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setIsPasswordOpen(true);
+                  }}
+                  className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <p className="font-medium text-gray-900">Change Password</p>
                   <p className="text-sm text-gray-600">Update your account password</p>
                 </button>
                 
-                <button className="w-full text-left p-3 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                <button
+                  onClick={async () => {
+                    const ok = window.confirm('Are you sure you want to delete your account?');
+                    if (!ok) return;
+                    try {
+                      await apiService.deleteAccount();
+                      toast.success('Account deleted');
+                      logout();
+                    } catch (e) {
+                      toast.error('Failed to delete account');
+                    }
+                  }}
+                  className="w-full text-left p-3 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                >
                   <p className="font-medium text-red-600">Delete Account</p>
                   <p className="text-sm text-red-600">Permanently delete your account and data</p>
                 </button>
@@ -132,5 +194,123 @@ export const Profile = () => {
         </div>
       </div>
     </Layout>
+    <Modal
+      open={isEditOpen}
+      title="Update Profile"
+      onClose={() => setIsEditOpen(false)}
+      actions={(
+        <>
+          <button
+            onClick={() => setIsEditOpen(false)}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const updated = await apiService.updateUser({ first_name: firstName, last_name: lastName, email });
+                const id = (profileUser as any)?.id || user?.id;
+                if (id && id > 0) {
+                  const fresh = await apiService.getCurrentUser(id);
+                  setProfileUser(fresh);
+                } else {
+                  setProfileUser(updated);
+                }
+                toast.success('Profile updated');
+                setIsEditOpen(false);
+              } catch (e) {
+                toast.error('Failed to update profile');
+              }
+            }}
+            className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+          >
+            Save
+          </button>
+        </>
+      )}
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+    </Modal>
+    <Modal
+      open={isPasswordOpen}
+      title="Change Password"
+      onClose={() => setIsPasswordOpen(false)}
+      actions={(
+        <>
+          <button
+            onClick={() => setIsPasswordOpen(false)}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              if (!currentPassword || !newPassword) return;
+              try {
+                await apiService.changePassword({ current_password: currentPassword, new_password: newPassword });
+                toast.success('Password changed');
+                setIsPasswordOpen(false);
+              } catch (e) {
+                toast.error('Failed to change password');
+              }
+            }}
+            className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+          >
+            Save
+          </button>
+        </>
+      )}
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+    </Modal>
+    </>
   );
 };

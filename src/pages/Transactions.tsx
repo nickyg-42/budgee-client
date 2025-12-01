@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
+import { apiService } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { Search, Edit, Trash2, Plus, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,7 +16,12 @@ export const Transactions = () => {
   useEffect(() => {
     const loadTransactions = async () => {
       try {
-        // For demo purposes, using mock data
+        // Try to fetch real transactions from backend first
+        const realTransactions = await apiService.getAllTransactions();
+        setTransactions(realTransactions);
+      } catch (error) {
+        console.error('Failed to load real transactions, using fallback data:', error);
+        // Fallback to mock data if backend endpoint doesn't exist yet
         const mockTransactions = [
           {
             id: '1',
@@ -103,9 +109,6 @@ export const Transactions = () => {
           }
         ];
         setTransactions(mockTransactions);
-      } catch (error) {
-        console.error('Failed to load transactions:', error);
-        toast.error('Failed to load transactions');
       }
     };
 

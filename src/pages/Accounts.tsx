@@ -1,36 +1,89 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { PlaidLinkButton } from '../components/PlaidLinkButton';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, DollarSign, CreditCard, Building, TrendingUp } from 'lucide-react';
+import { DollarSign, CreditCard, Building, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePlaidLink } from 'react-plaid-link';
 
 export const Accounts = () => {
   const { accounts, plaidItems, setAccounts, setPlaidItems } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [linkToken, setLinkToken] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
-  const [isCreatingLinkToken, setIsCreatingLinkToken] = useState(false);
+  
 
-  // Only load existing data on mount - no automatic link token creation
+  const initRef = useRef(false);
+
+  const initializeData = async () => {
+    try {
+      setIsLoading(true);
+      setHasError(false);
+      console.log('Initializing account data...');
+      
+      const items = await apiService.getPlaidItems();
+      console.log('Plaid items retrieved:', items);
+      setPlaidItems(items || []);
+      
+      if (!items || items.length === 0) {
+        console.log('No Plaid items found, clearing accounts');
+        setAccounts([]);
+        return;
+      }
+
+      const allAccounts: any[] = [];
+      console.log(`Loading accounts for ${items.length} items...`);
+      
+      for (const item of items) {
+        try {
+          console.log(`Loading accounts for item ${item.id}...`);
+          const itemAccounts = await apiService.getAccountsFromDB(item.id);
+          console.log(`Accounts for item ${item.id}:`, itemAccounts);
+          
+          if (itemAccounts && Array.isArray(itemAccounts)) {
+            allAccounts.push(...itemAccounts);
+            console.log(`Added ${itemAccounts.length} accounts from item ${item.id}`);
+          } else {
+            console.warn(`No accounts or invalid data for item ${item.id}:`, itemAccounts);
+          }
+        } catch (itemError) {
+          console.warn(`Failed to load accounts for item ${item.id}:`, itemError);
+        }
+      }
+      
+      console.log(`Total accounts loaded: ${allAccounts.length}`);
+      setAccounts(allAccounts || []);
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+      setHasError(true);
+      setAccounts([]);
+      setPlaidItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Only load existing data on mount (guarded against React StrictMode double-invoke)
   useEffect(() => {
-    loadAccounts();
-    loadPlaidItems();
+    if (initRef.current) return;
+    initRef.current = true;
+    initializeData();
   }, []);
 
   const loadAccounts = async () => {
     try {
       setIsLoading(true);
       setHasError(false);
+      console.log('Loading accounts from all connected items...');
+      
       // Load accounts from all connected items
       const items = await apiService.getPlaidItems();
+      console.log('Retrieved Plaid items for account loading:', items);
       
       // Handle case where user has no Plaid items (new user)
       if (!items || items.length === 0) {
+        console.log('No Plaid items found, clearing accounts and items');
         setAccounts([]);
         setPlaidItems([]);
         return;
@@ -40,10 +93,16 @@ export const Accounts = () => {
       
       for (const item of items) {
         try {
+          console.log(`Loading accounts for item ${item.id} (${item.institution_name})...`);
           const itemAccounts = await apiService.getAccountsFromDB(item.id);
+          console.log(`Retrieved accounts for item ${item.id}:`, itemAccounts);
+          
           // Handle null/undefined responses gracefully
           if (itemAccounts && Array.isArray(itemAccounts)) {
             allAccounts.push(...itemAccounts);
+            console.log(`Added ${itemAccounts.length} accounts from item ${item.id}`);
+          } else {
+            console.warn(`No accounts or invalid data format for item ${item.id}:`, itemAccounts);
           }
         } catch (itemError) {
           console.warn(`Failed to load accounts for item ${item.id}:`, itemError);
@@ -51,6 +110,7 @@ export const Accounts = () => {
         }
       }
       
+      console.log(`Total accounts loaded: ${allAccounts.length}`);
       setAccounts(allAccounts || []);
     } catch (error) {
       console.error('Failed to load accounts:', error);
@@ -77,46 +137,17 @@ export const Accounts = () => {
     }
   };
 
-  const createLinkToken = async () => {
-    try {
-      console.log('Creating link token...');
-      setIsCreatingLinkToken(true);
-      const response = await apiService.createLinkToken();
-      console.log('Link token created:', response.link_token);
-      setLinkToken(response.link_token);
-      return response.link_token;
-    } catch (error) {
-      console.error('Failed to create link token:', error);
-      toast.error('Failed to initialize bank connection');
-      throw error;
-    } finally {
-      setIsCreatingLinkToken(false);
-    }
-  };
-
-  const handleFirstAccountConnection = useCallback(async () => {
-    try {
-      if (!linkToken) {
-        // Create token first
-        await createLinkToken();
-        // The token will be set in state and usePlaidLink will automatically reconfigure
-        // When ready becomes true, the next button click will open it
-      }
-    } catch (error) {
-      console.error('Failed to create link token:', error);
-      toast.error('Failed to initialize bank connection');
-    }
-  }, [linkToken]);
+  
 
   const handlePlaidSuccess = async (publicToken: string) => {
     try {
       setIsLoading(true);
       await apiService.exchangePublicToken(publicToken);
       toast.success('Bank account connected successfully!');
+      localStorage.removeItem('plaid_link_token');
       
       // Reload accounts and items
-      await loadAccounts();
-      await loadPlaidItems();
+      await initializeData();
     } catch (error) {
       console.error('Failed to exchange public token:', error);
       // Extract error message from backend response
@@ -130,34 +161,7 @@ export const Accounts = () => {
     }
   };
 
-  // Plaid Link configuration for the main page - must be after handlePlaidSuccess is defined
-  const config = {
-    token: linkToken,
-    onSuccess: handlePlaidSuccess,
-    onExit: (err: any, metadata: any) => {
-      if (err) {
-        console.error('Plaid Link exit error:', err);
-        toast.error('Bank connection cancelled or failed');
-      }
-    },
-    onEvent: (eventName: string, metadata: any) => {
-      // Log Plaid Link events for debugging
-      console.log('Plaid Link event:', eventName, metadata);
-    },
-  };
-
-  const { open, ready } = usePlaidLink(config);
-
-  // Handle opening Plaid Link when button is clicked and we have a token
-  const handleConnectClick = useCallback(() => {
-    console.log('Connect button clicked - linkToken:', linkToken, 'ready:', ready);
-    if (linkToken && ready) {
-      console.log('Opening Plaid Link...');
-      open();
-    } else if (!linkToken && !isCreatingLinkToken) {
-      handleFirstAccountConnection();
-    }
-  }, [linkToken, ready, open, isCreatingLinkToken]);
+  
 
   const totalNetWorth = (accounts || []).reduce((sum, account) => {
     return sum + (account?.balance?.current || 0);
@@ -169,6 +173,15 @@ export const Accounts = () => {
     acc[type].push(account);
     return acc;
   }, {} as Record<string, typeof accounts>);
+
+  const institutionNameLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    (plaidItems || []).forEach((item) => {
+      const key = item.item_id || item.id;
+      if (key) map.set(key, item.institution_name);
+    });
+    return map;
+  }, [plaidItems]);
 
   const getAccountTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
@@ -274,23 +287,9 @@ export const Accounts = () => {
                   <p className="text-sm text-pink-600 mb-3 font-medium">
                     Connect your first bank account to get started!
                   </p>
-                  <button
-                    onClick={handleConnectClick}
-                    disabled={isCreatingLinkToken}
-                    className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
-                  >
-                    {isCreatingLinkToken ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Initializing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        <span>Connect Bank Account</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="mx-auto">
+                    <PlaidLinkButton onSuccess={handlePlaidSuccess} />
+                  </div>
                 </div>
               )}
             </div>
@@ -353,7 +352,7 @@ export const Accounts = () => {
                     <div>
                       <p className="font-medium text-gray-900">{account.name || 'Unknown Account'}</p>
                       <p className="text-sm text-gray-600">
-                        {account.subtype || account.type || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
+                        {(institutionNameLookup.get(account.item_id) || 'Unknown Institution')} • {account.subtype || account.type || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
                       </p>
                     </div>
                     <div className="text-right">

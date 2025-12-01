@@ -50,6 +50,7 @@ export interface MonthlySummary {
   expenses: number;
   savings: number;
   savings_rate: number;
+  net_worth?: number;
 }
 
 export interface DashboardStats {

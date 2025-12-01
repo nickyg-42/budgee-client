@@ -12,25 +12,25 @@ interface PlaidLinkButtonProps {
 export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [receivedRedirectUri, setReceivedRedirectUri] = useState<string | null>(null);
+  const [shouldOpenWhenReady, setShouldOpenWhenReady] = useState(false);
+  const [mountLink, setMountLink] = useState(false);
 
-  // Create link token when component mounts
   useEffect(() => {
-    const createLinkToken = async () => {
-      try {
-        setIsLoading(true);
-        const response = await apiService.createLinkToken();
-        setLinkToken(response.link_token);
-      } catch (error) {
-        console.error('Failed to create link token:', error);
-        toast.error('Failed to initialize bank connection');
-      } finally {
-        setIsLoading(false);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_state_id')) {
+      const storedToken = localStorage.getItem('plaid_link_token');
+      if (storedToken) {
+        setLinkToken(storedToken);
       }
-    };
-    createLinkToken();
+      setReceivedRedirectUri(window.location.href);
+      setMountLink(true);
+      setShouldOpenWhenReady(true);
+    }
   }, []);
 
   const onPlaidSuccess = useCallback((public_token: string, metadata: any) => {
+    localStorage.removeItem('plaid_link_token');
     onSuccess(public_token);
   }, [onSuccess]);
 
@@ -47,27 +47,53 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
     console.log('Plaid Link event:', eventName, metadata);
   }, []);
 
-  const config = {
-    token: linkToken,
-    onSuccess: onPlaidSuccess,
-    onExit: onPlaidExit,
-    onEvent: onPlaidEvent,
+  const LinkInstance = ({ token, uri, autoOpen }: { token: string | null; uri: string | null; autoOpen: boolean }) => {
+    const { open, ready } = usePlaidLink({
+      token,
+      onSuccess: onPlaidSuccess,
+      onExit: onPlaidExit,
+      onEvent: onPlaidEvent,
+      receivedRedirectUri: uri,
+    });
+
+    useEffect(() => {
+      if (ready && token && (uri || autoOpen)) {
+        open();
+        setShouldOpenWhenReady(false);
+      }
+    }, [ready, token, uri, autoOpen, open]);
+
+    return (
+      <button
+        onClick={() => open()}
+        disabled={isLoading || !ready || !token}
+        className="bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
+      >
+        {isLoading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Loading...</span>
+          </>
+        ) : (
+          <>
+            <Plus className="w-4 h-4" />
+            <span>Connect Bank Account</span>
+          </>
+        )}
+      </button>
+    );
   };
 
-  const { open, ready } = usePlaidLink(config);
-
   const handleClick = () => {
-    if (ready && linkToken) {
-      open();
-    } else if (!linkToken && !isLoading) {
-      // If no token exists, create one first
+    if (!linkToken && !isLoading) {
+      setShouldOpenWhenReady(true);
       const createToken = async () => {
         try {
           setIsLoading(true);
           const response = await apiService.createLinkToken();
           setLinkToken(response.link_token);
-          // The usePlaidLink hook will automatically reconfigure with the new token
-          // When ready becomes true, the next button click will open it
+          localStorage.setItem('plaid_link_token', response.link_token);
+          setMountLink(true);
         } catch (error) {
           console.error('Failed to create link token:', error);
           toast.error('Failed to initialize bank connection');
@@ -76,10 +102,15 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
         }
       };
       createToken();
+    } else if (linkToken && !mountLink) {
+      setMountLink(true);
+      setShouldOpenWhenReady(true);
     }
   };
 
-  return (
+  return mountLink ? (
+    <LinkInstance token={linkToken} uri={receivedRedirectUri} autoOpen={shouldOpenWhenReady} />
+  ) : (
     <button
       onClick={handleClick}
       disabled={isLoading}

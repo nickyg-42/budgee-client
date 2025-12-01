@@ -10,7 +10,7 @@ import { PiggyBank, Calendar, TrendingUp, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Dashboard = () => {
-  const { dashboardStats, recurringTransactions, setDashboardStats, setRecurringTransactions, setLoading, setError } = useAppStore();
+  const { dashboardStats, recurringTransactions, accounts, setDashboardStats, setRecurringTransactions, setLoading, setError } = useAppStore();
   const [activeCategoryTab, setActiveCategoryTab] = useState<'primary' | 'detailed'>('primary');
   const [activeTimeTab, setActiveTimeTab] = useState<'yearly' | 'monthly'>('monthly');
 
@@ -18,10 +18,15 @@ export const Dashboard = () => {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
+        console.log('Loading dashboard data...');
+        
         const [stats, recurring] = await Promise.all([
           apiService.getDashboardStats(),
           apiService.getRecurringTransactions()
         ]);
+        
+        console.log('Dashboard stats loaded:', stats);
+        console.log('Recurring transactions loaded:', recurring);
         
         setDashboardStats(stats);
         setRecurringTransactions(recurring);
@@ -231,33 +236,38 @@ export const Dashboard = () => {
                 <p className="text-2xl font-bold text-green-500">
                   {formatCurrency(dashboardStats.net_worth)}
                 </p>
-                <p className="text-xs text-gray-500">from $0 in October</p>
+                <p className="text-xs text-gray-500">
+                  from {formatCurrency(dashboardStats.previous_month.net_worth || 0)} in {dashboardStats.previous_month.month}
+                </p>
               </div>
             </div>
             
             <div className="space-y-4">
-              {[
-                { name: 'Investment', amount: 345861, type: 'positive', expandable: true },
-                { name: 'Depository', amount: 133560, type: 'positive', expandable: true },
-                { name: 'Credit', amount: 1230, type: 'negative', expandable: false },
-                { name: 'Loan', amount: 364692, type: 'negative', expandable: true }
-              ].map((account, index) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                  <span className="font-medium text-gray-900">{account.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className={`font-bold ${
-                      account.type === 'positive' ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {formatCurrency(account.amount)}
-                    </span>
-                    {account.expandable && (
+              {accounts.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  <p>No accounts connected yet</p>
+                  <p className="text-sm">Connect your bank accounts to see your financial overview</p>
+                </div>
+              ) : (
+                accounts.map((account) => (
+                  <div key={account.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div>
+                      <span className="font-medium text-gray-900">{account.name}</span>
+                      <p className="text-sm text-gray-600">{account.subtype || account.type}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`font-bold ${
+                        (account.balance.current || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {formatCurrency(account.balance.current || 0)}
+                      </span>
                       <button className="text-gray-400 hover:text-gray-600">
                         <Plus className="w-4 h-4" />
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

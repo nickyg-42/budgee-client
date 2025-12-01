@@ -77,9 +77,19 @@ class ApiService {
 
   // Plaid Integration
   async createLinkToken() {
-    return this.fetchWithErrorHandling('/plaid/create-link-token', {
+    const res = await this.fetchWithErrorHandling('/plaid/create-link-token', {
       method: 'POST',
     });
+    if (typeof res === 'string') {
+      return { link_token: res };
+    }
+    if (res && res.link_token) {
+      return res;
+    }
+    if (res && res.linkToken) {
+      return { link_token: res.linkToken };
+    }
+    return res;
   }
 
   async exchangePublicToken(publicToken: string) {
@@ -109,6 +119,14 @@ class ApiService {
     return this.fetchWithErrorHandling(`/plaid/transactions/${accountId}`);
   }
 
+  async getAllTransactions(): Promise<Transaction[]> {
+    return this.fetchWithErrorHandling('/plaid/transactions');
+  }
+
+  async getDashboardData(): Promise<DashboardStats> {
+    return this.fetchWithErrorHandling('/plaid/dashboard');
+  }
+
   // Authentication
   async login(data: LoginRequest): Promise<AuthResponse> {
     console.log('API login request with data:', data);
@@ -130,38 +148,62 @@ class ApiService {
     return response;
   }
 
-  async getCurrentUser(userId?: number): Promise<User> {
-    const url = userId ? `/user/${userId}` : '/user';
-    return this.fetchWithErrorHandling(url);
+  async getCurrentUser(userId: number): Promise<User> {
+    return this.fetchWithErrorHandling(`/user/${userId}`);
+  }
+
+  async updateUser(data: Partial<User>): Promise<User> {
+    return this.fetchWithErrorHandling('/user', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(data: { current_password: string; new_password: string }): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/user/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAccount(): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/user', {
+      method: 'DELETE',
+    });
   }
 
   // Dashboard Data
   async getDashboardStats(): Promise<DashboardStats> {
-    // Mock data for now - replace with actual endpoint when available
-    return {
-      current_month: {
-        month: 'November',
-        income: 2079,
-        expenses: 3591,
-        savings: -1513,
-        savings_rate: 0
-      },
-      previous_month: {
-        month: 'October',
-        income: 1008,
-        expenses: 1392,
-        savings: -384,
-        savings_rate: 0
-      },
-      top_categories: [
-        { category: 'GENERAL MERCHANDISE', amount: -2078.50, percentage: 57.9 },
-        { category: 'ENTERTAINMENT', amount: -1000.00, percentage: 27.9 },
-        { category: 'TRAVEL', amount: -500.00, percentage: 13.9 },
-        { category: 'TRANSPORTATION', amount: -12.66, percentage: 0.3 }
-      ],
-      accounts: [],
-      net_worth: 113498
-    };
+    try {
+      return await this.getDashboardData();
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats, using fallback data:', error);
+      // Fallback mock data if backend endpoint doesn't exist yet
+      return {
+        current_month: {
+          month: 'November',
+          income: 2079,
+          expenses: 3591,
+          savings: -1513,
+          savings_rate: 0
+        },
+        previous_month: {
+          month: 'October',
+          income: 1008,
+          expenses: 1392,
+          savings: -384,
+          savings_rate: 0
+        },
+        top_categories: [
+          { category: 'GENERAL MERCHANDISE', amount: -2078.50, percentage: 57.9 },
+          { category: 'ENTERTAINMENT', amount: -1000.00, percentage: 27.9 },
+          { category: 'TRAVEL', amount: -500.00, percentage: 13.9 },
+          { category: 'TRANSPORTATION', amount: -12.66, percentage: 0.3 }
+        ],
+        accounts: [],
+        net_worth: 113498
+      };
+    }
   }
 
   async getRecurringTransactions(): Promise<RecurringTransaction[]> {
