@@ -172,6 +172,12 @@ class ApiService {
     });
   }
 
+  async deletePlaidItem(itemId: string): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling(`/plaid/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Dashboard Data
   async getDashboardStats(): Promise<DashboardStats> {
     try {

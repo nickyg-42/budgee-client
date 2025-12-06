@@ -34,7 +34,7 @@ export const Layout = ({ children }: LayoutProps) => {
             <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
               <PiggyBank className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">trckfi</span>
+            <span className="text-xl font-bold text-gray-900">Budgee</span>
           </div>
         </div>
         

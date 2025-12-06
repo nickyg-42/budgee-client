@@ -17,13 +17,13 @@ export interface Account {
   id: string;
   item_id: string;
   name: string;
+  official_name?: string;
   type: string;
   subtype: string;
   mask?: string;
   balance: {
     available?: number;
     current: number;
-    limit?: number;
   };
 }
 

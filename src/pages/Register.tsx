@@ -77,7 +77,7 @@ export const Register = () => {
             <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center">
               <PiggyBank className="w-8 h-8 text-white" />
             </div>
-            <span className="text-3xl font-bold text-gray-900">trckfi</span>
+            <span className="text-3xl font-bold text-gray-900">Budgee</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
           <p className="text-gray-600 mt-2">Get started with your personal finance journey</p>

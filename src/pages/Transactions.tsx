@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
@@ -9,111 +9,73 @@ import { toast } from 'sonner';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 
 export const Transactions = () => {
-  const { transactions, setTransactions, transactionFilters, setTransactionFilters } = useAppStore();
+  const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems } = useAppStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     const loadTransactions = async () => {
       try {
-        // Try to fetch real transactions from backend first
-        const realTransactions = await apiService.getAllTransactions();
-        setTransactions(realTransactions);
+        setIsLoading(true);
+        console.log('Transactions: starting load');
+        const items = await apiService.getPlaidItems();
+        console.log('Transactions: items loaded', items);
+        setPlaidItems(items || []);
+        if (!items || items.length === 0) {
+          console.log('Transactions: no items, finishing');
+          setTransactions([]);
+          setIsLoading(false);
+          return;
+        }
+
+        await Promise.all(items.map((item) => {
+          const iid = item.id;
+          console.log('Transactions: syncing item', iid);
+          return apiService.syncTransactions(String(iid)).catch((e) => {
+            console.error('Transactions: sync failed for item', iid, e);
+            return null;
+          });
+        }));
+
+        const allAccounts: any[] = [];
+        const accountsByItem = await Promise.all(items.map((item) => {
+          console.log('Transactions: loading accounts for item', item.id);
+          return apiService.getAccountsFromDB(item.id).catch((e) => {
+            console.error('Transactions: load accounts failed for item', item.id, e);
+            return [];
+          });
+        }));
+        accountsByItem.forEach((arr) => allAccounts.push(...(arr || [])));
+        console.log('Transactions: total accounts loaded', allAccounts.length);
+        setAccounts(allAccounts || []);
+
+        const txnsByAccount = await Promise.all((allAccounts || []).map((acc) => {
+          console.log('Transactions: loading transactions for account', acc.id);
+          return apiService.getTransactions(acc.id).catch((e) => {
+            console.error('Transactions: load transactions failed for account', acc.id, e);
+            return [];
+          });
+        }));
+        const normalized = (txnsByAccount || []).map((arr) => Array.isArray(arr) ? arr : (arr ? [arr] : []));
+        const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
+        console.log('Transactions: total transactions loaded', allTxns.length);
+        setTransactions(allTxns as any);
+        toast.success('Transactions synced');
       } catch (error) {
-        console.error('Failed to load real transactions, using fallback data:', error);
-        // Fallback to mock data if backend endpoint doesn't exist yet
-        const mockTransactions = [
-          {
-            id: '1',
-            account_id: 'acc_1',
-            transaction_id: 'txn_1',
-            amount: -500,
-            date: '2023-11-11',
-            name: 'United Airlines',
-            merchant_name: 'United Airlines',
-            category: ['Travel', 'Flights'],
-            primary_category: 'TRAVEL',
-            detailed_category: 'FLIGHTS',
-            pending: false,
-            account_owner: 'tim'
-          },
-          {
-            id: '2',
-            account_id: 'acc_2',
-            transaction_id: 'txn_2',
-            amount: -6.33,
-            date: '2023-11-09',
-            name: 'Uber',
-            merchant_name: 'Uber',
-            category: ['Transportation', 'Ride Share'],
-            primary_category: 'TRANSPORTATION',
-            detailed_category: 'TAXIS_AND_RIDE_SHARES',
-            pending: false,
-            account_owner: 'tim'
-          },
-          {
-            id: '3',
-            account_id: 'acc_2',
-            transaction_id: 'txn_3',
-            amount: -6.33,
-            date: '2023-11-09',
-            name: 'Uber',
-            merchant_name: 'Uber',
-            category: ['Transportation', 'Ride Share'],
-            primary_category: 'TRANSPORTATION',
-            detailed_category: 'TAXIS_AND_RIDE_SHARES',
-            pending: false,
-            account_owner: 'tim'
-          },
-          {
-            id: '4',
-            account_id: 'acc_1',
-            transaction_id: 'txn_4',
-            amount: -500,
-            date: '2023-11-06',
-            name: 'Tectra Inc',
-            merchant_name: 'Tectra Inc',
-            category: ['Entertainment', 'Events'],
-            primary_category: 'ENTERTAINMENT',
-            detailed_category: 'SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS',
-            pending: false,
-            account_owner: 'tim'
-          },
-          {
-            id: '5',
-            account_id: 'acc_1',
-            transaction_id: 'txn_5',
-            amount: -500,
-            date: '2023-11-06',
-            name: 'Tectra Inc',
-            merchant_name: 'Tectra Inc',
-            category: ['Entertainment', 'Events'],
-            primary_category: 'ENTERTAINMENT',
-            detailed_category: 'SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS',
-            pending: false,
-            account_owner: 'tim'
-          },
-          {
-            id: '6',
-            account_id: 'acc_1',
-            transaction_id: 'txn_6',
-            amount: 2078.50,
-            date: '2023-11-05',
-            name: 'AUTOMATIC PAYMENT - THANK',
-            merchant_name: 'AUTOMATIC PAYMENT - THANK',
-            category: ['General Merchandise', 'Other'],
-            primary_category: 'GENERAL_MERCHANDISE',
-            detailed_category: 'OTHER_GENERAL_MERCHANDISE',
-            pending: false,
-            account_owner: 'tim'
-          }
-        ];
-        setTransactions(mockTransactions);
+        console.error('Failed to sync and load transactions:', error);
+        toast.error('Failed to load transactions');
+      } finally {
+        console.log('Transactions: finishing load');
+        setIsLoading(false);
       }
     };
 
     loadTransactions();
-  }, [setTransactions]);
+  }, []);
 
   const monthlyChartData = [
     { month: 'Jul 2023', income: 1500, expenses: 1200 },
@@ -123,17 +85,30 @@ export const Transactions = () => {
     { month: 'Nov 2023', income: 2079, expenses: 3591 },
   ];
 
-  const filteredTransactions = transactions.filter(transaction => {
-    if (transactionFilters.search && !transaction.name.toLowerCase().includes(transactionFilters.search.toLowerCase())) {
+  const asNumber = (v: any) => {
+    const n = typeof v === 'number' ? v : v === undefined || v === null ? 0 : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const safeName = (t: any) => (t?.name ?? t?.merchant_name ?? '');
+  const safePrimaryCategory = (t: any) => (t?.primary_category ?? t?.category ?? '');
+  const safeDetailedCategory = (t: any) => (t?.detailed_category ?? '');
+
+  const filteredTransactions = (transactions || []).filter(transaction => {
+    if (!transaction || typeof transaction !== 'object') {
       return false;
     }
-    if (transactionFilters.account !== 'All' && transaction.account_id !== transactionFilters.account) {
+    const name = safeName(transaction).toLowerCase();
+    if (transactionFilters.search && !name.includes(transactionFilters.search.toLowerCase())) {
       return false;
     }
-    if (transactionFilters.primary_category !== 'All' && transaction.primary_category !== transactionFilters.primary_category) {
+    if (transactionFilters.account !== 'All' && String(transaction.account_id) !== transactionFilters.account) {
       return false;
     }
-    if (transactionFilters.detailed_category !== 'All' && transaction.detailed_category !== transactionFilters.detailed_category) {
+    if (transactionFilters.primary_category !== 'All' && safePrimaryCategory(transaction) !== transactionFilters.primary_category) {
+      return false;
+    }
+    if (transactionFilters.detailed_category !== 'All' && safeDetailedCategory(transaction) !== transactionFilters.detailed_category) {
       return false;
     }
     return true;
@@ -143,7 +118,7 @@ export const Transactions = () => {
     if (selectedTransactions.size === filteredTransactions.length) {
       setSelectedTransactions(new Set());
     } else {
-      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+      setSelectedTransactions(new Set(filteredTransactions.map(t => String((t as any).id)).filter(Boolean)));
     }
   };
 
@@ -158,11 +133,8 @@ export const Transactions = () => {
   };
 
   const getAccountName = (accountId: string) => {
-    const accountMap: Record<string, string> = {
-      'acc_1': 'Plaid Credit Card',
-      'acc_2': 'Plaid Checking'
-    };
-    return accountMap[accountId] || 'Unknown Account';
+    const found = (accounts || []).find(a => a.id === accountId);
+    return found?.name || 'Unknown Account';
   };
 
   return (
@@ -248,6 +220,12 @@ export const Transactions = () => {
         </CardHeader>
         
         <CardContent className="p-0">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500 mr-3"></div>
+              <span className="text-gray-600">Loading transactions...</span>
+            </div>
+          )}
           {/* Filter Row */}
           <div className="border-b border-gray-200">
             <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50">
@@ -279,8 +257,9 @@ export const Transactions = () => {
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                 >
                   <option value="All">All</option>
-                  <option value="acc_1">Plaid Credit Card</option>
-                  <option value="acc_2">Plaid Checking</option>
+                  {(accounts || []).map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
                 </select>
               </div>
               
@@ -362,18 +341,18 @@ export const Transactions = () => {
             <table className="w-full">
               <tbody className="divide-y divide-gray-200">
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-gray-50">
+                  <tr key={String((transaction as any).id)} className="hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
                         <input
                           type="checkbox"
-                          checked={selectedTransactions.has(transaction.id)}
-                          onChange={() => handleSelectTransaction(transaction.id)}
+                          checked={selectedTransactions.has(String((transaction as any).id))}
+                          onChange={() => handleSelectTransaction(String((transaction as any).id))}
                           className="rounded"
                         />
                         <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                           <span className="text-xs font-medium text-gray-600">
-                            {transaction.name.charAt(0)}
+                            {safeName(transaction).charAt(0) || '?'}
                           </span>
                         </div>
                       </div>
@@ -381,7 +360,7 @@ export const Transactions = () => {
                     
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{transaction.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{safeName(transaction) || 'Unknown'}</div>
                       </div>
                     </td>
                     
@@ -390,18 +369,18 @@ export const Transactions = () => {
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {transaction.account_owner}
+                      {transaction.account_owner || ''}
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                        {transaction.primary_category}
+                        {safePrimaryCategory(transaction)}
                       </span>
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                        {transaction.detailed_category}
+                        {safeDetailedCategory(transaction) || '—'}
                       </span>
                     </td>
                     
@@ -410,8 +389,8 @@ export const Transactions = () => {
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                      <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {formatCurrency(transaction.amount)}
+                      <span className={asNumber(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(asNumber(transaction.amount))}
                       </span>
                     </td>
                     

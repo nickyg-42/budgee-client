@@ -125,28 +125,23 @@ export const Accounts = () => {
     }
   };
 
-  const loadPlaidItems = async () => {
-    try {
-      const items = await apiService.getPlaidItems();
-      // Handle null/undefined responses gracefully
-      setPlaidItems(items || []);
-    } catch (error) {
-      console.error('Failed to load Plaid items:', error);
-      // Set empty array on error to handle gracefully
-      setPlaidItems([]);
-    }
-  };
-
-  
-
   const handlePlaidSuccess = async (publicToken: string) => {
     try {
       setIsLoading(true);
+      const itemsBefore = plaidItems ? [...plaidItems] : [];
       await apiService.exchangePublicToken(publicToken);
+      const newItems = await apiService.getPlaidItems();
+      setPlaidItems(newItems || []);
+      const newlyAdded = (newItems || []).filter(i => !(itemsBefore || []).some(b => b.id === i.id));
+      const targetItems = newlyAdded.length > 0 ? newlyAdded : (newItems || []);
+      for (const item of targetItems) {
+        try {
+          await apiService.getPlaidAccounts(item.id);
+        } catch (e) {
+        }
+      }
       toast.success('Bank account connected successfully!');
       localStorage.removeItem('plaid_link_token');
-      
-      // Reload accounts and items
       await initializeData();
     } catch (error) {
       console.error('Failed to exchange public token:', error);
@@ -163,22 +158,30 @@ export const Accounts = () => {
 
   
 
+  const asNumber = (v: any) => {
+    const n = typeof v === 'number' ? v : v === undefined || v === null ? 0 : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const getCurrentBalance = (a: any) => asNumber(a?.balance?.current ?? a?.current_balance);
+  const getAvailableBalance = (a: any) => asNumber(a?.balance?.available ?? a?.available_balance);
+
   const totalNetWorth = (accounts || []).reduce((sum, account) => {
-    return sum + (account?.balance?.current || 0);
+    return sum + getCurrentBalance(account);
   }, 0);
 
   const accountsByType = (accounts || []).reduce((acc, account) => {
-    const type = account?.type || 'unknown';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(account);
+    const category = (account?.subtype || 'unknown').toLowerCase();
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(account);
     return acc;
   }, {} as Record<string, typeof accounts>);
 
   const institutionNameLookup = useMemo(() => {
     const map = new Map<string, string>();
     (plaidItems || []).forEach((item) => {
-      const key = item.item_id || item.id;
-      if (key) map.set(key, item.institution_name);
+      if (item.id) map.set(String(item.id), item.institution_name);
+      if (item.item_id) map.set(String(item.item_id), item.institution_name);
     });
     return map;
   }, [plaidItems]);
@@ -314,10 +317,14 @@ export const Accounts = () => {
                     </div>
                     <button
                       onClick={async () => {
+                        const ok = window.confirm('Remove this institution? This will also remove its accounts and transactions.');
+                        if (!ok) return;
                         try {
-                          // Add remove institution functionality
-                          toast.info('Remove institution feature coming soon');
+                          await apiService.deletePlaidItem(item.id);
+                          toast.success('Institution removed');
+                          await initializeData();
                         } catch (error) {
+                          toast.error('Failed to remove institution');
                           console.error('Failed to remove institution:', error);
                         }
                       }}
@@ -333,16 +340,16 @@ export const Accounts = () => {
         )}
 
         {/* Accounts by Type */}
-        {Object.entries(accountsByType).length > 0 && Object.entries(accountsByType).map(([type, typeAccounts]) => (
-          <Card key={type}>
+        {Object.entries(accountsByType).length > 0 && Object.entries(accountsByType).map(([category, typeAccounts]) => (
+          <Card key={category}>
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <div className={`p-2 rounded-lg ${getAccountTypeColor(type).split(' ')[1]}`}>
-                  <div className={getAccountTypeColor(type).split(' ')[0]}>
-                    {getAccountTypeIcon(type)}
+                <div className={`p-2 rounded-lg ${getAccountTypeColor(category).split(' ')[1]}`}>
+                  <div className={getAccountTypeColor(category).split(' ')[0]}>
+                    {getAccountTypeIcon(category)}
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 capitalize">{type} Accounts</h3>
+                <h3 className="text-lg font-semibold text-gray-900 capitalize">{category} Accounts</h3>
               </div>
             </CardHeader>
             <CardContent>
@@ -352,16 +359,16 @@ export const Accounts = () => {
                     <div>
                       <p className="font-medium text-gray-900">{account.name || 'Unknown Account'}</p>
                       <p className="text-sm text-gray-600">
-                        {(institutionNameLookup.get(account.item_id) || 'Unknown Institution')} • {account.subtype || account.type || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
+                        {(institutionNameLookup.get(String((account as any).item_id)) || 'Unknown Institution')} • {account.type || account.subtype || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        {formatCurrency(account?.balance?.current || 0)}
+                        {formatCurrency(getCurrentBalance(account))}
                       </p>
-                      {account?.balance?.available !== undefined && (
+                      {(account?.balance?.available !== undefined || (account as any)?.available_balance !== undefined) && (
                         <p className="text-sm text-gray-600">
-                          Available: {formatCurrency(account.balance.available)}
+                          Available: {formatCurrency(getAvailableBalance(account))}
                         </p>
                       )}
                     </div>
@@ -370,9 +377,9 @@ export const Accounts = () => {
                 
                 <div className="pt-3 border-t border-gray-200">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-900">Total {type}</span>
+                    <span className="font-medium text-gray-900">Total {category}</span>
                     <span className="font-semibold text-gray-900">
-                      {formatCurrency(typeAccounts.reduce((sum, acc) => sum + (acc?.balance?.current || 0), 0))}
+                      {formatCurrency(typeAccounts.reduce((sum, acc) => sum + getCurrentBalance(acc), 0))}
                     </span>
                   </div>
                 </div>
