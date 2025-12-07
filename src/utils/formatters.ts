@@ -62,11 +62,11 @@ export const getCategoryColor = (category: string): string => {
     ENTERTAINMENT: '#EF4444',
     TRANSFER_OUT: '#6366F1',
     INCOME: '#22C55E',
-    LOAN_PAYMENTS: '#64748B',
+    LOAN_PAYMENTS: '#6D28D9',
     GENERAL_MERCHANDISE: '#3B82F6',
-    PERSONAL_CARE: '#EC4899',
+    PERSONAL_CARE: '#60A5FA',
     RENT_AND_UTILITIES: '#F97316',
-    DEFAULT: '#6B7280'
+    DEFAULT: '#9CA3AF'
   };
   return colors[key] || colors.DEFAULT;
 };
@@ -75,7 +75,7 @@ export const getUniqueCategoryColorMap = (categories: string[]): Record<string, 
   const unique = Array.from(new Set((categories || []).filter(Boolean)));
   const sorted = unique.slice().sort((a, b) => a.localeCompare(b));
   const palette = [
-    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#60A5FA', '#06B6D4', '#84CC16',
     '#A855F7', '#D946EF', '#F97316', '#22D3EE', '#65A30D', '#4ADE80', '#C026D3', '#FB7185',
     '#0EA5E9', '#14B8A6', '#E11D48', '#7C3AED'
   ];

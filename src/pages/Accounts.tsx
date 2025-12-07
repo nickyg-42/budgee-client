@@ -137,6 +137,7 @@ export const Accounts = () => {
       for (const item of targetItems) {
         try {
           await apiService.getPlaidAccounts(item.id);
+          await apiService.syncTransactions(String(item.id));
         } catch (e) {
         }
       }
@@ -221,7 +222,7 @@ export const Accounts = () => {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
           <p className="text-gray-600 text-center">
             {accounts.length === 0 ? 'Loading your accounts...' : 'Refreshing account data...'}
           </p>
@@ -248,7 +249,7 @@ export const Accounts = () => {
           <div className="flex space-x-3">
             <button
               onClick={loadAccounts}
-              className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Try Again
             </button>
@@ -287,7 +288,7 @@ export const Accounts = () => {
               </p>
               {accounts.length === 0 && (
                 <div className="mt-4">
-                  <p className="text-sm text-pink-600 mb-3 font-medium">
+                  <p className="text-sm text-blue-600 mb-3 font-medium">
                     Connect your first bank account to get started!
                   </p>
                   <div className="mx-auto">
@@ -392,8 +393,8 @@ export const Accounts = () => {
         {accounts.length === 0 && (
           <Card>
             <CardContent className="text-center py-12">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-pink-600" />
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Connected Accounts</h3>
               <p className="text-gray-600 mb-2">

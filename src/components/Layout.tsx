@@ -7,7 +7,7 @@ import {
   DollarSign, 
   User, 
   LogOut,
-  PiggyBank
+  Bird
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -31,8 +31,8 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="w-64 bg-white shadow-sm">
         <div className="flex items-center px-6 py-4 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
-              <PiggyBank className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <Bird className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-900">Budgee</span>
           </div>
@@ -47,8 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 to={item.href}
                 className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-pink-50 text-pink-600 border-r-2 border-pink-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <item.icon className="mr-3 h-5 w-5" />
@@ -71,7 +70,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <span className="text-sm text-gray-600">
                 {user ? (user.email || user.username || user.first_name || 'User') : 'Loading...'}
               </span>
-              <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user ? user.first_name.charAt(0).toUpperCase() : 'U'}
                 </span>

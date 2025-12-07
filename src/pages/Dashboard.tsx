@@ -27,7 +27,6 @@ export const Dashboard = () => {
           setAccounts([]);
           return;
         }
-        await Promise.all(items.map((item) => apiService.syncTransactions(String(item.id)).catch(() => null)));
         const accountsByItem = await Promise.all(items.map((item) => apiService.getAccountsFromDB(item.id).catch(() => [])));
         const allAccounts: any[] = ([] as any[])
           .concat(...accountsByItem)
@@ -147,7 +146,7 @@ export const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center text-pink-500 mb-2">
+                <div className="flex items-center text-blue-500 mb-2">
                   <PiggyBank className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Savings Rate</span>
                 </div>
@@ -166,7 +165,7 @@ export const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center text-pink-500 mb-2">
+                <div className="flex items-center text-blue-500 mb-2">
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Expenses</span>
                 </div>
@@ -189,7 +188,7 @@ export const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center text-pink-500 mb-2">
+                <div className="flex items-center text-blue-500 mb-2">
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Income</span>
                 </div>
@@ -301,7 +300,7 @@ export const Dashboard = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-pink-500">Accounts</h3>
+              <h3 className="text-lg font-semibold text-blue-500">Accounts</h3>
               <div className="text-right">
                 <p className="text-sm text-gray-600">Net Worth</p>
                 <p className="text-2xl font-bold text-green-500">

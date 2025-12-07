@@ -259,10 +259,10 @@ export const Transactions = () => {
             >
               <Minus className="w-7 h-7" strokeWidth={3} />
             </button>
-            <div className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+            <div className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
               {chartDateRange.start}
             </div>
-            <div className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+            <div className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
               {chartDateRange.end}
             </div>
             <button
@@ -311,7 +311,7 @@ export const Transactions = () => {
         <CardContent className="p-0">
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500 mr-3"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mr-3"></div>
               <span className="text-gray-600">Loading transactions...</span>
             </div>
           )}
@@ -369,7 +369,7 @@ export const Transactions = () => {
                   placeholder="Search..."
                   value={transactionFilters.search}
                   onChange={(e) => setTransactionFilters({ search: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
@@ -378,7 +378,7 @@ export const Transactions = () => {
                 <select
                   value={transactionFilters.account}
                   onChange={(e) => setTransactionFilters({ account: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All">All</option>
                   {(accounts || []).map(acc => (
@@ -392,7 +392,7 @@ export const Transactions = () => {
                 <select
                   value={transactionFilters.primary_category}
                   onChange={(e) => setTransactionFilters({ primary_category: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All">All</option>
                   {Array.from(new Set((transactions || []).map(t => safePrimaryCategory(t)).filter(Boolean)))
@@ -408,7 +408,7 @@ export const Transactions = () => {
                   <select
                     value={transactionFilters.date_from}
                     onChange={(e) => { setTransactionFilters({ date_from: e.target.value }); setCurrentPage(1); }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All</option>
                     {monthOptions.map(opt => (
@@ -435,7 +435,7 @@ export const Transactions = () => {
                       setTransactionFilters({ amount_min: e.target.value });
                       setCurrentPage(1);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="number"
@@ -506,7 +506,7 @@ export const Transactions = () => {
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                         {safePrimaryCategory(transaction)}
                       </span>
                     </td>
@@ -528,7 +528,7 @@ export const Transactions = () => {
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
-                        <button className="text-pink-500 hover:text-pink-700">
+                        <button className="text-blue-500 hover:text-blue-700">
                           <Edit className="w-4 h-4" onClick={() => {
                             setEditTx(transaction);
                             setEditCategory(safePrimaryCategory(transaction));
@@ -539,7 +539,7 @@ export const Transactions = () => {
                             setIsEditOpen(true);
                           }} />
                         </button>
-                        <button className="text-pink-500 hover:text-pink-700" onClick={async () => {
+                        <button className="text-blue-500 hover:text-blue-700" onClick={async () => {
                           const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
                           if (!ok) return;
                           try {
@@ -621,7 +621,7 @@ export const Transactions = () => {
                   toast.error('Failed to update transaction');
                 }
               }}
-              className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
             >
               Save
             </button>
@@ -634,7 +634,7 @@ export const Transactions = () => {
             <select
               value={editCategory}
               onChange={(e) => setEditCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {['TRANSPORTATION','TRAVEL','FOOD_AND_DRINK','ENTERTAINMENT','TRANSFER_OUT','INCOME','LOAN_PAYMENTS','GENERAL_MERCHANDISE','PERSONAL_CARE','RENT_AND_UTILITIES'].map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -647,7 +647,7 @@ export const Transactions = () => {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -656,7 +656,7 @@ export const Transactions = () => {
               type="text"
               value={editMerchantName}
               onChange={(e) => setEditMerchantName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -665,7 +665,7 @@ export const Transactions = () => {
               type="date"
               value={editDate}
               onChange={(e) => setEditDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>

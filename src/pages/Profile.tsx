@@ -105,8 +105,8 @@ export const Profile = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-pink-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Full Name</p>
@@ -115,8 +115,8 @@ export const Profile = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <AtSign className="w-5 h-5 text-pink-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <AtSign className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Username</p>
@@ -125,8 +125,8 @@ export const Profile = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-pink-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Email Address</p>
@@ -135,8 +135,8 @@ export const Profile = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-pink-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Member Since</p>
@@ -145,8 +145,8 @@ export const Profile = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-pink-600" />
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Account Status</p>
@@ -165,11 +165,11 @@ export const Profile = () => {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-pink-500">{accountCount}</p>
+                  <p className="text-2xl font-bold text-blue-500">{accountCount}</p>
                   <p className="text-sm text-gray-600">Connected Accounts</p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-pink-500">{transactionCount}</p>
+                  <p className="text-2xl font-bold text-blue-500">{transactionCount}</p>
                   <p className="text-sm text-gray-600">Transactions Tracked</p>
                 </div>
               </div>
@@ -260,7 +260,7 @@ export const Profile = () => {
                 toast.error('Failed to update profile');
               }
             }}
-            className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
             Save
           </button>
@@ -274,7 +274,7 @@ export const Profile = () => {
             type="text"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div>
@@ -283,7 +283,7 @@ export const Profile = () => {
             type="text"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div>
@@ -292,7 +292,7 @@ export const Profile = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -320,7 +320,7 @@ export const Profile = () => {
                 toast.error('Failed to change password');
               }
             }}
-            className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
             Save
           </button>
@@ -334,7 +334,7 @@ export const Profile = () => {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div>
@@ -343,7 +343,7 @@ export const Profile = () => {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
