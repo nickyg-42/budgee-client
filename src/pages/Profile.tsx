@@ -3,13 +3,15 @@ import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { User, Mail, Calendar, Shield, AtSign } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { apiService } from '../services/api';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
+import { useAppStore } from '../stores/appStore';
 
 export const Profile = () => {
   const { user, logout } = useAuth();
+  const { accounts, transactions } = useAppStore();
   const [profileUser, setProfileUser] = useState(user);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -18,6 +20,9 @@ export const Profile = () => {
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [accountCount, setAccountCount] = useState(0);
+  const [transactionCount, setTransactionCount] = useState(0);
+  const initCountsRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -39,6 +44,38 @@ export const Profile = () => {
       mounted = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (initCountsRef.current) return;
+    initCountsRef.current = true;
+    const computeCounts = async () => {
+      try {
+        const accLen = Array.isArray(accounts) ? accounts.length : 0;
+        const txnLen = Array.isArray(transactions) ? transactions.length : 0;
+        if (accLen > 0 || txnLen > 0) {
+          setAccountCount(accLen);
+          setTransactionCount(txnLen);
+          return;
+        }
+        const items = await apiService.getPlaidItems();
+        const accountsByItem = await Promise.all((items || []).map((item) =>
+          apiService.getAccountsFromDB(item.id).catch(() => [])
+        ));
+        const allAccounts = ([] as any[]).concat(...accountsByItem).filter(Boolean);
+        setAccountCount(allAccounts.length);
+        const txnsByAccount = await Promise.all((allAccounts || []).map((acc: any) =>
+          apiService.getTransactions(acc.id).catch(() => [])
+        ));
+        const normalized = (txnsByAccount || []).map((arr) => Array.isArray(arr) ? arr : (arr ? [arr] : []));
+        const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
+        setTransactionCount(allTxns.length);
+      } catch {
+        setAccountCount(Array.isArray(accounts) ? accounts.length : 0);
+        setTransactionCount(Array.isArray(transactions) ? transactions.length : 0);
+      }
+    };
+    computeCounts();
+  }, [accounts, transactions]);
 
   if (!profileUser) {
     return (
@@ -128,11 +165,11 @@ export const Profile = () => {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-pink-500">0</p>
+                  <p className="text-2xl font-bold text-pink-500">{accountCount}</p>
                   <p className="text-sm text-gray-600">Connected Accounts</p>
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-pink-500">0</p>
+                  <p className="text-2xl font-bold text-pink-500">{transactionCount}</p>
                   <p className="text-sm text-gray-600">Transactions Tracked</p>
                 </div>
               </div>

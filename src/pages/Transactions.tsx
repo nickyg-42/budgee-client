@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { Search, Edit, Trash2, Plus, Minus, Upload, Download, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Minus, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
@@ -42,14 +42,7 @@ export const Transactions = () => {
           return;
         }
 
-        await Promise.all(items.map((item) => {
-          const iid = item.id;
-          console.log('Transactions: syncing item', iid);
-          return apiService.syncTransactions(String(iid)).catch((e) => {
-            console.error('Transactions: sync failed for item', iid, e);
-            return null;
-          });
-        }));
+        // Do not trigger transaction sync here; backend handles syncing.
 
         const allAccounts: any[] = [];
         const accountsByItem = await Promise.all(items.map((item) => {
@@ -74,7 +67,6 @@ export const Transactions = () => {
         const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
         console.log('Transactions: total transactions loaded', allTxns.length);
         setTransactions(allTxns as any);
-        toast.success('Transactions synced');
       } catch (error) {
         console.error('Failed to sync and load transactions:', error);
         toast.error('Failed to load transactions');
@@ -261,11 +253,11 @@ export const Transactions = () => {
         <div className="flex items-center justify-center mb-6">
           <div className="flex items-center space-x-4">
             <button
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="text-gray-700 hover:text-gray-900 disabled:opacity-50"
               onClick={() => setChartMonths(m => Math.max(1, m - 1))}
               disabled={chartMonths <= 1}
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-7 h-7" strokeWidth={3} />
             </button>
             <div className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium">
               {chartDateRange.start}
@@ -274,11 +266,11 @@ export const Transactions = () => {
               {chartDateRange.end}
             </div>
             <button
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="text-gray-700 hover:text-gray-900 disabled:opacity-50"
               onClick={() => setChartMonths(m => Math.min(12, m + 1))}
               disabled={chartMonths >= 12}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-7 h-7" strokeWidth={3} />
             </button>
           </div>
         </div>
@@ -290,30 +282,19 @@ export const Transactions = () => {
           
           <Card>
             <CardContent className="p-6">
-              <div className="flex space-x-2 mb-4">
-                <button className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white">
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white">
-                  <Upload className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white">
-                  <Download className="w-4 h-4" />
-                </button>
-              </div>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600">Cash Flow</p>
-                  <p className={`text-lg font-bold ${summaryTotals.cashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summaryTotals.cashFlow)}</p>
+                  <p className="text-base font-semibold text-gray-700">Net Difference</p>
+                  <p className={`text-4xl font-extrabold ${summaryTotals.cashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summaryTotals.cashFlow)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Income</p>
-                  <p className="text-lg font-bold text-green-500">{formatCurrency(summaryTotals.income)}</p>
+                  <p className="text-base font-semibold text-gray-700">Income</p>
+                  <p className="text-4xl font-extrabold text-green-500">{formatCurrency(summaryTotals.income)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Expenses</p>
-                  <p className="text-lg font-bold text-pink-500">{formatCurrency(summaryTotals.expenses)}</p>
+                  <p className="text-base font-semibold text-gray-700">Expenses</p>
+                  <p className="text-4xl font-extrabold text-red-500">{formatCurrency(summaryTotals.expenses)}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
                   <p className="text-sm text-gray-600">{filteredTransactions.length} Transactions</p>
@@ -539,7 +520,7 @@ export const Transactions = () => {
                       {formatDate(transaction.date)}
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
                       <span className={asNumber(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-600'}>
                         {formatCurrency(asNumber(transaction.amount))}
                       </span>
@@ -562,7 +543,7 @@ export const Transactions = () => {
                           const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
                           if (!ok) return;
                           try {
-                            await apiService.deleteTransaction(String((transaction as any).transaction_id || (transaction as any).id));
+                            await apiService.deleteTransaction(String((transaction as any).id));
                             setTransactions((transactions || []).filter((t: any) => String((t as any).id) !== String((transaction as any).id)) as any);
                             toast.success('Transaction deleted');
                           } catch (e) {
@@ -617,7 +598,7 @@ export const Transactions = () => {
               onClick={async () => {
                 if (!editTx) return;
                 try {
-                  const id = String((editTx as any).transaction_id || (editTx as any).id);
+                  const id = String((editTx as any).id);
                   const payload: any = {
                     category: editCategory,
                     primary_category: editCategory,
@@ -627,7 +608,13 @@ export const Transactions = () => {
                     amount: Number(editAmount)
                   };
                   const updated = await apiService.updateTransaction(id, payload);
-                  setTransactions(((transactions || []) as any[]).map((t: any) => String((t as any).id) === String((editTx as any).id) ? (updated || { ...t, ...payload }) : t) as any);
+                  setTransactions(((transactions || []) as any[]).map((t: any) => {
+                    if (String((t as any).id) !== String((editTx as any).id)) return t;
+                    const merged = { ...t, ...(updated || {}), ...payload };
+                    // Ensure id is preserved
+                    (merged as any).id = (t as any).id;
+                    return merged;
+                  }) as any);
                   toast.success('Transaction updated');
                   setIsEditOpen(false);
                 } catch (e) {

@@ -31,7 +31,7 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
           <Tooltip 
             formatter={(value: number, name: string) => [
               `$${value.toFixed(2)}`, 
-              name === 'income' ? 'Income' : 'Expenses'
+              name
             ]}
             labelFormatter={(label) => `${label}`}
             contentStyle={{
@@ -53,7 +53,7 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
           />
           <Bar 
             dataKey="expenses" 
-            fill="#ec4899" 
+            fill="#ef4444" 
             name="Expenses"
             radius={[2, 2, 0, 0]}
           />

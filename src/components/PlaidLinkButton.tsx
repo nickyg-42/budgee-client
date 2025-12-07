@@ -16,6 +16,13 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = useState(false);
   const [mountLink, setMountLink] = useState(false);
 
+  const restoreScroll = useCallback(() => {
+    try {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('oauth_state_id')) {
@@ -31,21 +38,32 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
 
   const onPlaidSuccess = useCallback((public_token: string, metadata: any) => {
     localStorage.removeItem('plaid_link_token');
+    restoreScroll();
     onSuccess(public_token);
-  }, [onSuccess]);
+  }, [onSuccess, restoreScroll]);
 
   const onPlaidExit = useCallback((err: any, metadata: any) => {
     if (err) {
       console.error('Plaid Link exit error:', err);
       toast.error('Bank connection cancelled or failed');
     }
+    restoreScroll();
     onExit?.();
-  }, [onExit]);
+  }, [onExit, restoreScroll]);
 
   const onPlaidEvent = useCallback((eventName: string, metadata: any) => {
     // Log Plaid Link events for debugging
     console.log('Plaid Link event:', eventName, metadata);
-  }, []);
+    if (eventName === 'OPEN') {
+      try {
+        // Let Plaid manage scroll if it wants; ensure we don't double-lock
+        // No-op here, but keep for future instrumentation
+      } catch {}
+    }
+    if (eventName === 'EXIT' || eventName === 'HANDOFF' || eventName === 'SUCCESS') {
+      restoreScroll();
+    }
+  }, [restoreScroll]);
 
   const LinkInstance = ({ token, uri, autoOpen }: { token: string | null; uri: string | null; autoOpen: boolean }) => {
     const { open, ready } = usePlaidLink({
@@ -62,6 +80,13 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
         setShouldOpenWhenReady(false);
       }
     }, [ready, token, uri, autoOpen, open]);
+
+    useEffect(() => {
+      return () => {
+        // Defensive: restore scroll on unmount
+        restoreScroll();
+      };
+    }, [restoreScroll]);
 
     return (
       <button

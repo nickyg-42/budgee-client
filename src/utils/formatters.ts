@@ -54,18 +54,45 @@ export const calculatePercentageChange = (current: number, previous: number): nu
 };
 
 export const getCategoryColor = (category: string): string => {
+  const key = (category || '').toUpperCase().replace(/\s+/g, '_');
   const colors: Record<string, string> = {
-    'GENERAL MERCHANDISE': '#3B82F6',
-    'ENTERTAINMENT': '#EF4444',
-    'TRAVEL': '#10B981',
-    'TRANSPORTATION': '#F59E0B',
-    'FOOD_AND_DRINK': '#8B5CF6',
-    'SHOPS': '#EC4899',
-    'RECREATION': '#06B6D4',
-    'SERVICE': '#84CC16',
+    TRANSPORTATION: '#F59E0B',
+    TRAVEL: '#10B981',
+    FOOD_AND_DRINK: '#8B5CF6',
+    ENTERTAINMENT: '#EF4444',
+    TRANSFER_OUT: '#6366F1',
+    INCOME: '#22C55E',
+    LOAN_PAYMENTS: '#64748B',
+    GENERAL_MERCHANDISE: '#3B82F6',
+    PERSONAL_CARE: '#EC4899',
+    RENT_AND_UTILITIES: '#F97316',
+    DEFAULT: '#6B7280'
   };
-  
-  return colors[category] || '#6B7280';
+  return colors[key] || colors.DEFAULT;
+};
+
+export const getUniqueCategoryColorMap = (categories: string[]): Record<string, string> => {
+  const unique = Array.from(new Set((categories || []).filter(Boolean)));
+  const sorted = unique.slice().sort((a, b) => a.localeCompare(b));
+  const palette = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16',
+    '#A855F7', '#D946EF', '#F97316', '#22D3EE', '#65A30D', '#4ADE80', '#C026D3', '#FB7185',
+    '#0EA5E9', '#14B8A6', '#E11D48', '#7C3AED'
+  ];
+  const used = new Set<string>();
+  const map: Record<string, string> = {};
+  let idx = 0;
+  for (const cat of sorted) {
+    let color = getCategoryColor(cat);
+    if (used.has(color)) {
+      while (idx < palette.length && used.has(palette[idx])) idx++;
+      color = palette[idx % palette.length];
+      idx++;
+    }
+    used.add(color);
+    map[cat] = color;
+  }
+  return map;
 };
 
 export const debounce = <T extends (...args: unknown[]) => unknown>(
