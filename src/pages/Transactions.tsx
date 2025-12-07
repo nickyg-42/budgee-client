@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { Search, Edit, Trash2, Plus, Upload, Download, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Minus, Upload, Download, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
@@ -15,10 +15,12 @@ export const Transactions = () => {
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(25);
+  const [chartMonths, setChartMonths] = useState(2);
   const initRef = useRef(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editTx, setEditTx] = useState<any | null>(null);
   const [editCategory, setEditCategory] = useState('');
+  const [editName, setEditName] = useState('');
   const [editMerchantName, setEditMerchantName] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editAmount, setEditAmount] = useState('');
@@ -85,18 +87,56 @@ export const Transactions = () => {
     loadTransactions();
   }, []);
 
-  const monthlyChartData = [
-    { month: 'Jul 2023', income: 1500, expenses: 1200 },
-    { month: 'Aug 2023', income: 1800, expenses: 1400 },
-    { month: 'Sep 2023', income: 2100, expenses: 1600 },
-    { month: 'Oct 2023', income: 1900, expenses: 1500 },
-    { month: 'Nov 2023', income: 2079, expenses: 3591 },
-  ];
-
   const asNumber = (v: any) => {
     const n = typeof v === 'number' ? v : v === undefined || v === null ? 0 : Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+
+  const monthlyChartData = useMemo(() => {
+    const now = new Date();
+    const buckets = new Map<string, { income: number; expenses: number; label: string }>();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const key = `${y}-${m}`;
+      const label = `${d.toLocaleString(undefined, { month: 'short' })} ${y}`;
+      buckets.set(key, { income: 0, expenses: 0, label });
+    }
+
+    (transactions || []).forEach((t: any) => {
+      if (!t || typeof t !== 'object') return;
+      const d: any = t.date;
+      const dt = typeof d === 'string' ? new Date(d) : new Date(d);
+      if (isNaN(dt.getTime())) return;
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const key = `${y}-${m}`;
+      const bucket = buckets.get(key);
+      if (!bucket) return;
+      const amt = asNumber(t.amount);
+      if (amt >= 0) bucket.income += amt; else bucket.expenses += Math.abs(amt);
+    });
+
+    return Array.from(buckets.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([_, v]) => ({ month: v.label, income: v.income, expenses: v.expenses }));
+  }, [transactions]);
+
+  const chartDataWindow = useMemo(() => {
+    const data = monthlyChartData || [];
+    const n = Math.max(1, Math.min(12, chartMonths));
+    return data.slice(Math.max(0, data.length - n));
+  }, [monthlyChartData, chartMonths]);
+
+  const chartDateRange = useMemo(() => {
+    const now = new Date();
+    const n = Math.max(1, Math.min(12, chartMonths));
+    const start = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: formatDate(toISO(start)), end: formatDate(toISO(end)) };
+  }, [chartMonths]);
 
   const safeName = (t: any) => (t?.name ?? t?.merchant_name ?? '');
   const safePrimaryCategory = (t: any) => (t?.primary_category ?? t?.category ?? '');
@@ -133,6 +173,19 @@ export const Transactions = () => {
     }
   };
 
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const options: { value: string; label: string }[] = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const label = `${d.toLocaleString(undefined, { month: 'long' })} ${y}`;
+      options.push({ value: `${y}-${m}`, label });
+    }
+    return options;
+  }, []);
+
   const filteredTransactions = (transactions || []).filter(transaction => {
     if (!transaction || typeof transaction !== 'object') {
       return false;
@@ -147,17 +200,12 @@ export const Transactions = () => {
     if (transactionFilters.primary_category !== 'All' && safePrimaryCategory(transaction) !== transactionFilters.primary_category) {
       return false;
     }
-    // Date range
-    if (transactionFilters.date_from || transactionFilters.date_to) {
-      const tDate = new Date(transaction.date);
-      if (transactionFilters.date_from) {
-        const from = new Date(transactionFilters.date_from);
-        if (tDate < from) return false;
-      }
-      if (transactionFilters.date_to) {
-        const to = new Date(transactionFilters.date_to);
-        if (tDate > to) return false;
-      }
+    // Month filter
+    if (transactionFilters.date_from) {
+      const selectedMonth = transactionFilters.date_from.slice(0, 7);
+      const d: any = (transaction as any).date;
+      const txMonth = typeof d === 'string' ? d.slice(0, 7) : new Date(d).toISOString().slice(0, 7);
+      if (txMonth !== selectedMonth) return false;
     }
     // Amount range
     const amt = asNumber(transaction.amount);
@@ -171,6 +219,16 @@ export const Transactions = () => {
     }
     return true;
   });
+
+  const summaryTotals = useMemo(() => {
+    let income = 0;
+    let expenses = 0;
+    (filteredTransactions || []).forEach((t: any) => {
+      const amt = asNumber(t?.amount);
+      if (amt >= 0) income += amt; else expenses += Math.abs(amt);
+    });
+    return { income, expenses, cashFlow: income - expenses };
+  }, [filteredTransactions]);
 
   const handleSelectAll = () => {
     if (selectedTransactions.size === filteredTransactions.length) {
@@ -190,8 +248,9 @@ export const Transactions = () => {
     setSelectedTransactions(newSelected);
   };
 
-  const getAccountName = (accountId: string) => {
-    const found = (accounts || []).find(a => a.id === accountId);
+  const getAccountName = (accountId: string | number) => {
+    const idStr = String(accountId);
+    const found = (accounts || []).find((a: any) => String(a?.id) === idStr);
     return found?.name || 'Unknown Account';
   };
 
@@ -201,24 +260,32 @@ export const Transactions = () => {
       <div className="mb-8">
         <div className="flex items-center justify-center mb-6">
           <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-gray-600">
-              ←
+            <button
+              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              onClick={() => setChartMonths(m => Math.max(1, m - 1))}
+              disabled={chartMonths <= 1}
+            >
+              <Minus className="w-4 h-4" />
             </button>
             <div className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium">
-              July 1, 2023
+              {chartDateRange.start}
             </div>
             <div className="bg-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium">
-              November 30, 2023
+              {chartDateRange.end}
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
-              →
+            <button
+              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              onClick={() => setChartMonths(m => Math.min(12, m + 1))}
+              disabled={chartMonths >= 12}
+            >
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
-            <IncomeExpenseChart data={monthlyChartData} />
+            <IncomeExpenseChart data={chartDataWindow} />
           </div>
           
           <Card>
@@ -238,15 +305,15 @@ export const Transactions = () => {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Cash Flow</p>
-                  <p className="text-lg font-bold text-green-500">$424</p>
+                  <p className={`text-lg font-bold ${summaryTotals.cashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summaryTotals.cashFlow)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Income</p>
-                  <p className="text-lg font-bold text-green-500">$8,962</p>
+                  <p className="text-lg font-bold text-green-500">{formatCurrency(summaryTotals.income)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Expenses</p>
-                  <p className="text-lg font-bold text-pink-500">$8,538</p>
+                  <p className="text-lg font-bold text-pink-500">{formatCurrency(summaryTotals.expenses)}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
                   <p className="text-sm text-gray-600">{filteredTransactions.length} Transactions</p>
@@ -355,32 +422,24 @@ export const Transactions = () => {
               </div>
               
               <div className="col-span-2">
-                <span className="text-sm font-medium">Date Range</span>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="date"
+                <span className="text-sm font-medium">Month</span>
+                <div className="mt-2">
+                  <select
                     value={transactionFilters.date_from}
-                    onChange={(e) => {
-                      setTransactionFilters({ date_from: e.target.value });
-                      setCurrentPage(1);
-                    }}
+                    onChange={(e) => { setTransactionFilters({ date_from: e.target.value }); setCurrentPage(1); }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
-                  <input
-                    type="date"
-                    value={transactionFilters.date_to}
-                    onChange={(e) => {
-                      setTransactionFilters({ date_to: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
+                  >
+                    <option value="">All</option>
+                    {monthOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <button
-                  onClick={() => { setTransactionFilters({ date_from: '', date_to: '' }); setCurrentPage(1); }}
+                  onClick={() => { setTransactionFilters({ date_from: '' }); setCurrentPage(1); }}
                   className="mt-2 text-xs text-gray-600 underline"
                 >
-                  Clear date range
+                  Clear month
                 </button>
               </div>
               
@@ -492,8 +551,9 @@ export const Transactions = () => {
                           <Edit className="w-4 h-4" onClick={() => {
                             setEditTx(transaction);
                             setEditCategory(safePrimaryCategory(transaction));
+                            setEditName((transaction as any).name || '');
                             setEditMerchantName(transaction.merchant_name || safeName(transaction));
-                            setEditDate(transaction.date || '');
+                            setEditDate((transaction as any).date ? String((transaction as any).date).slice(0,10) : '');
                             setEditAmount(String(asNumber(transaction.amount)));
                             setIsEditOpen(true);
                           }} />
@@ -561,6 +621,7 @@ export const Transactions = () => {
                   const payload: any = {
                     category: editCategory,
                     primary_category: editCategory,
+                    name: editName,
                     merchant_name: editMerchantName,
                     date: editDate,
                     amount: Number(editAmount)
@@ -592,6 +653,15 @@ export const Transactions = () => {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Merchant Name</label>
