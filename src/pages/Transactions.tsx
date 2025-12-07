@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { Search, Edit, Trash2, Plus, Upload, Download } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Upload, Download, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 
 export const Transactions = () => {
@@ -13,7 +14,14 @@ export const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
   const initRef = useRef(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editTx, setEditTx] = useState<any | null>(null);
+  const [editCategory, setEditCategory] = useState('');
+  const [editMerchantName, setEditMerchantName] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editAmount, setEditAmount] = useState('');
 
   useEffect(() => {
     if (initRef.current) return;
@@ -92,7 +100,38 @@ export const Transactions = () => {
 
   const safeName = (t: any) => (t?.name ?? t?.merchant_name ?? '');
   const safePrimaryCategory = (t: any) => (t?.primary_category ?? t?.category ?? '');
-  const safeDetailedCategory = (t: any) => (t?.detailed_category ?? '');
+  const isPending = (t: any) => {
+    const v = (t as any)?.pending;
+    return v === true || v === 't' || v === 'true';
+  };
+
+  const getCategoryIcon = (cat: string) => {
+    const c = (cat || '').toUpperCase();
+    switch (c) {
+      case 'TRANSPORTATION':
+        return <Car className="w-4 h-4 text-gray-700" />;
+      case 'TRAVEL':
+        return <Plane className="w-4 h-4 text-gray-700" />;
+      case 'FOOD_AND_DRINK':
+        return <Utensils className="w-4 h-4 text-gray-700" />;
+      case 'ENTERTAINMENT':
+        return <Music2 className="w-4 h-4 text-gray-700" />;
+      case 'TRANSFER_OUT':
+        return <ArrowUpRight className="w-4 h-4 text-gray-700" />;
+      case 'INCOME':
+        return <ArrowDownRight className="w-4 h-4 text-gray-700" />;
+      case 'LOAN_PAYMENTS':
+        return <CreditCard className="w-4 h-4 text-gray-700" />;
+      case 'GENERAL_MERCHANDISE':
+        return <ShoppingBag className="w-4 h-4 text-gray-700" />;
+      case 'PERSONAL_CARE':
+        return <Heart className="w-4 h-4 text-gray-700" />;
+      case 'RENT_AND_UTILITIES':
+        return <Home className="w-4 h-4 text-gray-700" />;
+      default:
+        return <Circle className="w-4 h-4 text-gray-700" />;
+    }
+  };
 
   const filteredTransactions = (transactions || []).filter(transaction => {
     if (!transaction || typeof transaction !== 'object') {
@@ -108,8 +147,27 @@ export const Transactions = () => {
     if (transactionFilters.primary_category !== 'All' && safePrimaryCategory(transaction) !== transactionFilters.primary_category) {
       return false;
     }
-    if (transactionFilters.detailed_category !== 'All' && safeDetailedCategory(transaction) !== transactionFilters.detailed_category) {
-      return false;
+    // Date range
+    if (transactionFilters.date_from || transactionFilters.date_to) {
+      const tDate = new Date(transaction.date);
+      if (transactionFilters.date_from) {
+        const from = new Date(transactionFilters.date_from);
+        if (tDate < from) return false;
+      }
+      if (transactionFilters.date_to) {
+        const to = new Date(transactionFilters.date_to);
+        if (tDate > to) return false;
+      }
+    }
+    // Amount range
+    const amt = asNumber(transaction.amount);
+    if (transactionFilters.amount_min) {
+      const min = Number(transactionFilters.amount_min);
+      if (Number.isFinite(min) && amt < min) return false;
+    }
+    if (transactionFilters.amount_max) {
+      const max = Number(transactionFilters.amount_max);
+      if (Number.isFinite(max) && amt > max) return false;
     }
     return true;
   });
@@ -201,23 +259,6 @@ export const Transactions = () => {
 
       {/* Filters and Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between mb-4">
-            <button 
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              className="text-gray-600 hover:text-gray-900"
-              disabled={currentPage === 1}
-            >
-              ← Previous
-            </button>
-            <button 
-              onClick={() => setCurrentPage(currentPage + 1)}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Next →
-            </button>
-          </div>
-        </CardHeader>
         
         <CardContent className="p-0">
           {isLoading && (
@@ -226,6 +267,41 @@ export const Transactions = () => {
               <span className="text-gray-600">Loading transactions...</span>
             </div>
           )}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">Rows per page</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600">out of {filteredTransactions.length}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white disabled:opacity-50"
+              >
+                ← Previous
+              </button>
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {Math.max(1, Math.ceil(filteredTransactions.length / pageSize))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(Math.min(Math.max(1, Math.ceil(filteredTransactions.length / pageSize)), currentPage + 1))}
+                disabled={currentPage >= Math.ceil(filteredTransactions.length / pageSize)}
+                className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white disabled:opacity-50"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
           {/* Filter Row */}
           <div className="border-b border-gray-200">
             <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50">
@@ -263,18 +339,6 @@ export const Transactions = () => {
                 </select>
               </div>
               
-              <div className="col-span-1">
-                <span className="text-sm font-medium">User</span>
-                <select
-                  value={transactionFilters.user}
-                  onChange={(e) => setTransactionFilters({ user: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
-                  <option value="All">All</option>
-                  <option value="tim">tim</option>
-                </select>
-              </div>
-              
               <div className="col-span-2">
                 <span className="text-sm font-medium">Primary Category</span>
                 <select
@@ -283,55 +347,73 @@ export const Transactions = () => {
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                 >
                   <option value="All">All</option>
-                  <option value="TRAVEL">Travel</option>
-                  <option value="TRANSPORTATION">Transportation</option>
-                  <option value="ENTERTAINMENT">Entertainment</option>
-                  <option value="GENERAL_MERCHANDISE">General Merchandise</option>
+                  {Array.from(new Set((transactions || []).map(t => safePrimaryCategory(t)).filter(Boolean)))
+                    .map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                 </select>
               </div>
               
               <div className="col-span-2">
-                <span className="text-sm font-medium">Detailed Category</span>
-                <select
-                  value={transactionFilters.detailed_category}
-                  onChange={(e) => setTransactionFilters({ detailed_category: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                <span className="text-sm font-medium">Date Range</span>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={transactionFilters.date_from}
+                    onChange={(e) => {
+                      setTransactionFilters({ date_from: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                  <input
+                    type="date"
+                    value={transactionFilters.date_to}
+                    onChange={(e) => {
+                      setTransactionFilters({ date_to: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+                <button
+                  onClick={() => { setTransactionFilters({ date_from: '', date_to: '' }); setCurrentPage(1); }}
+                  className="mt-2 text-xs text-gray-600 underline"
                 >
-                  <option value="All">All</option>
-                  <option value="FLIGHTS">Flights</option>
-                  <option value="TAXIS_AND_RIDE_SHARES">Taxis & Ride Shares</option>
-                  <option value="SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS">Events</option>
-                  <option value="OTHER_GENERAL_MERCHANDISE">Other</option>
-                </select>
+                  Clear date range
+                </button>
               </div>
               
-              <div className="col-span-1">
-                <span className="text-sm font-medium">Tags</span>
-                <select
-                  value={transactionFilters.tags}
-                  onChange={(e) => setTransactionFilters({ tags: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              <div className="col-span-2">
+                <span className="text-sm font-medium">Amount Range</span>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={transactionFilters.amount_min}
+                    onChange={(e) => {
+                      setTransactionFilters({ amount_min: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={transactionFilters.amount_max}
+                    onChange={(e) => {
+                      setTransactionFilters({ amount_max: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+                <button
+                  onClick={() => { setTransactionFilters({ amount_min: '', amount_max: '' }); setCurrentPage(1); }}
+                  className="mt-2 text-xs text-gray-600 underline"
                 >
-                  <option value="All">All</option>
-                </select>
-              </div>
-              
-              <div className="col-span-1">
-                <span className="text-sm font-medium">Date</span>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-              
-              <div className="col-span-1">
-                <span className="text-sm font-medium">Amount</span>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
+                  Clear amount range
+                </button>
               </div>
             </div>
           </div>
@@ -339,8 +421,21 @@ export const Transactions = () => {
           {/* Transactions Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                  <th className="px-4 py-3">Select</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Merchant</th>
+                  <th className="px-4 py-3">Account</th>
+                  <th className="px-4 py-3">Primary Category</th>
+                  <th className="px-4 py-3">Pending</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredTransactions.map((transaction) => (
+                {filteredTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((transaction) => (
                   <tr key={String((transaction as any).id)} className="hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
@@ -351,25 +446,23 @@ export const Transactions = () => {
                           className="rounded"
                         />
                         <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
-                            {safeName(transaction).charAt(0) || '?'}
-                          </span>
+                          {getCategoryIcon(safePrimaryCategory(transaction))}
                         </div>
                       </div>
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{safeName(transaction) || 'Unknown'}</div>
+                        <div className="text-sm font-medium text-gray-900">{(transaction as any).name || 'Unknown'}</div>
                       </div>
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {getAccountName(transaction.account_id)}
+                      {(transaction as any).merchant_name || ''}
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {transaction.account_owner || ''}
+                      {getAccountName(transaction.account_id)}
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -378,11 +471,10 @@ export const Transactions = () => {
                       </span>
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                        {safeDetailedCategory(transaction) || '—'}
-                      </span>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {isPending(transaction) ? 'Yes' : 'No'}
                     </td>
+                    
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       {formatDate(transaction.date)}
@@ -397,9 +489,26 @@ export const Transactions = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <button className="text-pink-500 hover:text-pink-700">
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-4 h-4" onClick={() => {
+                            setEditTx(transaction);
+                            setEditCategory(safePrimaryCategory(transaction));
+                            setEditMerchantName(transaction.merchant_name || safeName(transaction));
+                            setEditDate(transaction.date || '');
+                            setEditAmount(String(asNumber(transaction.amount)));
+                            setIsEditOpen(true);
+                          }} />
                         </button>
-                        <button className="text-pink-500 hover:text-pink-700">
+                        <button className="text-pink-500 hover:text-pink-700" onClick={async () => {
+                          const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
+                          if (!ok) return;
+                          try {
+                            await apiService.deleteTransaction(String((transaction as any).transaction_id || (transaction as any).id));
+                            setTransactions((transactions || []).filter((t: any) => String((t as any).id) !== String((transaction as any).id)) as any);
+                            toast.success('Transaction deleted');
+                          } catch (e) {
+                            toast.error('Failed to delete transaction');
+                          }
+                        }}>
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -409,8 +518,111 @@ export const Transactions = () => {
               </tbody>
             </table>
           </div>
+          <div className="flex items-center justify-between p-4 border-t border-gray-200">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {Math.max(1, Math.ceil(filteredTransactions.length / pageSize))}
+            </div>
+            <div className="space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white disabled:opacity-50"
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.min(Math.max(1, Math.ceil(filteredTransactions.length / pageSize)), currentPage + 1))}
+                disabled={currentPage >= Math.ceil(filteredTransactions.length / pageSize)}
+                className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white disabled:opacity-50"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
         </CardContent>
       </Card>
+      <Modal
+        open={isEditOpen}
+        title="Edit Transaction"
+        onClose={() => setIsEditOpen(false)}
+        actions={(
+          <>
+            <button
+              onClick={() => setIsEditOpen(false)}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!editTx) return;
+                try {
+                  const id = String((editTx as any).transaction_id || (editTx as any).id);
+                  const payload: any = {
+                    category: editCategory,
+                    primary_category: editCategory,
+                    merchant_name: editMerchantName,
+                    date: editDate,
+                    amount: Number(editAmount)
+                  };
+                  const updated = await apiService.updateTransaction(id, payload);
+                  setTransactions(((transactions || []) as any[]).map((t: any) => String((t as any).id) === String((editTx as any).id) ? (updated || { ...t, ...payload }) : t) as any);
+                  toast.success('Transaction updated');
+                  setIsEditOpen(false);
+                } catch (e) {
+                  toast.error('Failed to update transaction');
+                }
+              }}
+              className="px-4 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+            >
+              Save
+            </button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            >
+              {['TRANSPORTATION','TRAVEL','FOOD_AND_DRINK','ENTERTAINMENT','TRANSFER_OUT','INCOME','LOAN_PAYMENTS','GENERAL_MERCHANDISE','PERSONAL_CARE','RENT_AND_UTILITIES'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Merchant Name</label>
+            <input
+              type="text"
+              value={editMerchantName}
+              onChange={(e) => setEditMerchantName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </Modal>
     </Layout>
   );
 };

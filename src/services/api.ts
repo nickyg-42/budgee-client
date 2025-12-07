@@ -178,6 +178,19 @@ class ApiService {
     });
   }
 
+  async deleteTransaction(transactionId: string): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling(`/plaid/transactions/${transactionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateTransaction(transactionId: string, data: { category?: string; merchant_name?: string; date?: string; amount?: number; primary_category?: string; name?: string }): Promise<any> {
+    return this.fetchWithErrorHandling(`/plaid/transactions/${transactionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Dashboard Data
   async getDashboardStats(): Promise<DashboardStats> {
     try {

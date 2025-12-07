@@ -5,9 +5,8 @@ export interface Transaction {
   date: string;
   name: string;
   merchant_name?: string;
-  category: string[];
+  category: string;
   primary_category: string;
-  detailed_category: string;
   pending: boolean;
   account_owner?: string;
   transaction_id: string;
