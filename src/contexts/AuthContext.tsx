@@ -30,42 +30,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('Initializing authentication...');
       const storedToken = localStorage.getItem('token');
-      console.log('Stored token found:', !!storedToken);
       
       if (storedToken) {
         apiService.setToken(storedToken);
         try {
-          console.log('Validating stored token...');
           
           // Check if token is expired
           if (isJWTExpired(storedToken)) {
-            console.log('Token is expired');
             throw new Error('Token is expired');
           }
           
           // Extract user data from JWT token
           const userFromJWT = extractUserFromJWT(storedToken);
           if (userFromJWT) {
-            console.log('User data extracted from JWT during initialization:', userFromJWT);
-            console.log('User email from JWT:', userFromJWT.email);
-            console.log('User username from JWT:', userFromJWT.username);
-            console.log('User first_name from JWT:', userFromJWT.first_name);
             setUser(userFromJWT);
             setToken(storedToken);
           } else {
-            console.error('Failed to extract user data from JWT during initialization');
             throw new Error('Invalid token - cannot extract user data');
           }
         } catch (error) {
-          console.error('Failed to validate token:', error);
           localStorage.removeItem('token');
           apiService.setToken(null);
         }
       }
       setIsLoading(false);
-      console.log('Authentication initialization complete');
     };
 
     initializeAuth();
@@ -73,9 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     try {
-      console.log('Attempting login with username:', username);
       const response = await apiService.login({ username, password });
-      console.log('Login response received:', response);
       
       // Check if response has token
       if (!response.token) {
@@ -96,29 +83,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Extract user data from JWT token
       const userFromJWT = extractUserFromJWT(token);
       if (userFromJWT) {
-        console.log('User data extracted from JWT:', userFromJWT);
-        console.log('User email from login JWT:', userFromJWT.email);
-        console.log('User username from login JWT:', userFromJWT.username);
-        console.log('User first_name from login JWT:', userFromJWT.first_name);
         setUser(userFromJWT);
       } else {
-        console.error('Failed to extract user data from JWT');
         // Still consider login successful if we have token
         // User data can be fetched later if needed
       }
-      
-      console.log('Login successful - token:', token);
     } catch (error) {
-      console.error('Login failed:', error);
       throw error;
     }
   };
 
   const register = async (email: string, username: string, password: string, firstName: string, lastName: string) => {
     try {
-      console.log('Attempting registration with email:', email, 'username:', username);
       const response = await apiService.register({ email, username, password, first_name: firstName, last_name: lastName });
-      console.log('Registration response received:', response);
       
       // Check if response has token
       if (!response.token) {
@@ -139,10 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Extract user data from JWT token
       const userFromJWT = extractUserFromJWT(token);
       if (userFromJWT) {
-        console.log('User data extracted from JWT:', userFromJWT);
         setUser(userFromJWT);
       } else {
-        console.error('Failed to extract user data from JWT');
         // Create a temporary user object from registration data
         const tempUser: User = {
           id: 0, // Will be populated when user data is fetched
@@ -155,9 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(tempUser);
       }
       
-      console.log('Registration successful - token:', token);
     } catch (error) {
-      console.error('Registration failed:', error);
       throw error;
     }
   };
@@ -179,7 +152,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
   };
 
-  console.log('AuthContext value - user:', !!user, 'token:', !!token, 'isLoading:', isLoading, 'isAuthenticated:', !!user && !!token);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

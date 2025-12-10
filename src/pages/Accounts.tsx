@@ -20,42 +20,33 @@ export const Accounts = () => {
     try {
       setIsLoading(true);
       setHasError(false);
-      console.log('Initializing account data...');
       
       const items = await apiService.getPlaidItems();
-      console.log('Plaid items retrieved:', items);
       setPlaidItems(items || []);
       
       if (!items || items.length === 0) {
-        console.log('No Plaid items found, clearing accounts');
         setAccounts([]);
         return;
       }
 
       const allAccounts: any[] = [];
-      console.log(`Loading accounts for ${items.length} items...`);
       
       for (const item of items) {
         try {
-          console.log(`Loading accounts for item ${item.id}...`);
           const itemAccounts = await apiService.getAccountsFromDB(item.id);
-          console.log(`Accounts for item ${item.id}:`, itemAccounts);
           
           if (itemAccounts && Array.isArray(itemAccounts)) {
             allAccounts.push(...itemAccounts);
-            console.log(`Added ${itemAccounts.length} accounts from item ${item.id}`);
           } else {
-            console.warn(`No accounts or invalid data for item ${item.id}:`, itemAccounts);
+            
           }
         } catch (itemError) {
-          console.warn(`Failed to load accounts for item ${item.id}:`, itemError);
+          
         }
       }
       
-      console.log(`Total accounts loaded: ${allAccounts.length}`);
       setAccounts(allAccounts || []);
     } catch (error) {
-      console.error('Failed to initialize data:', error);
       setHasError(true);
       setAccounts([]);
       setPlaidItems([]);
@@ -75,15 +66,12 @@ export const Accounts = () => {
     try {
       setIsLoading(true);
       setHasError(false);
-      console.log('Loading accounts from all connected items...');
       
       // Load accounts from all connected items
       const items = await apiService.getPlaidItems();
-      console.log('Retrieved Plaid items for account loading:', items);
       
       // Handle case where user has no Plaid items (new user)
       if (!items || items.length === 0) {
-        console.log('No Plaid items found, clearing accounts and items');
         setAccounts([]);
         setPlaidItems([]);
         return;
@@ -93,27 +81,21 @@ export const Accounts = () => {
       
       for (const item of items) {
         try {
-          console.log(`Loading accounts for item ${item.id} (${item.institution_name})...`);
           const itemAccounts = await apiService.getAccountsFromDB(item.id);
-          console.log(`Retrieved accounts for item ${item.id}:`, itemAccounts);
           
           // Handle null/undefined responses gracefully
           if (itemAccounts && Array.isArray(itemAccounts)) {
             allAccounts.push(...itemAccounts);
-            console.log(`Added ${itemAccounts.length} accounts from item ${item.id}`);
           } else {
-            console.warn(`No accounts or invalid data format for item ${item.id}:`, itemAccounts);
+            
           }
         } catch (itemError) {
-          console.warn(`Failed to load accounts for item ${item.id}:`, itemError);
           // Continue with other items even if one fails
         }
       }
       
-      console.log(`Total accounts loaded: ${allAccounts.length}`);
       setAccounts(allAccounts || []);
     } catch (error) {
-      console.error('Failed to load accounts:', error);
       setHasError(true);
       // Don't show error toast for new users - it's expected they have no accounts
       if (error instanceof Error && !error.message.includes('No items found')) {
@@ -145,7 +127,6 @@ export const Accounts = () => {
       localStorage.removeItem('plaid_link_token');
       await initializeData();
     } catch (error) {
-      console.error('Failed to exchange public token:', error);
       // Extract error message from backend response
       let errorMessage = 'Failed to connect bank account';
       if (error instanceof Error) {

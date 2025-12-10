@@ -44,12 +44,9 @@ export const Transactions = () => {
     const loadTransactions = async () => {
       try {
         setIsLoading(true);
-        console.log('Transactions: starting load');
         const items = await apiService.getPlaidItems();
-        console.log('Transactions: items loaded', items);
         setPlaidItems(items || []);
         if (!items || items.length === 0) {
-          console.log('Transactions: no items, finishing');
           setTransactions([]);
           setIsLoading(false);
           return;
@@ -59,32 +56,24 @@ export const Transactions = () => {
 
         const allAccounts: any[] = [];
         const accountsByItem = await Promise.all(items.map((item) => {
-          console.log('Transactions: loading accounts for item', item.id);
           return apiService.getAccountsFromDB(item.id).catch((e) => {
-            console.error('Transactions: load accounts failed for item', item.id, e);
             return [];
           });
         }));
         accountsByItem.forEach((arr) => allAccounts.push(...(arr || [])));
-        console.log('Transactions: total accounts loaded', allAccounts.length);
         setAccounts(allAccounts || []);
 
         const txnsByAccount = await Promise.all((allAccounts || []).map((acc) => {
-          console.log('Transactions: loading transactions for account', acc.id);
           return apiService.getTransactions(acc.id).catch((e) => {
-            console.error('Transactions: load transactions failed for account', acc.id, e);
             return [];
           });
         }));
         const normalized = (txnsByAccount || []).map((arr) => Array.isArray(arr) ? arr : (arr ? [arr] : []));
         const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
-        console.log('Transactions: total transactions loaded', allTxns.length);
         setTransactions(allTxns as any);
       } catch (error) {
-        console.error('Failed to sync and load transactions:', error);
         toast.error('Failed to load transactions');
       } finally {
-        console.log('Transactions: finishing load');
         setIsLoading(false);
       }
     };

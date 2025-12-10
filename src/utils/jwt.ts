@@ -13,10 +13,8 @@ interface JWTPayload {
 export const decodeJWT = (token: string): JWTPayload | null => {
   try {
     const decoded = jwtDecode<JWTPayload>(token);
-    console.log('JWT decoded successfully:', decoded);
     return decoded;
   } catch (error) {
-    console.error('Failed to decode JWT:', error);
     return null;
   }
 };
@@ -38,7 +36,6 @@ export const extractUserFromJWT = (token: string) => {
     created_at: new Date().toISOString(), // JWT doesn't typically include creation date
   };
 
-  console.log('User extracted from JWT:', user);
   return user;
 };
 

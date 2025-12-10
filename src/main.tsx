@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 import './index.css'
 
 // Add global styles for the app
@@ -23,6 +24,8 @@ document.head.appendChild(style)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 )

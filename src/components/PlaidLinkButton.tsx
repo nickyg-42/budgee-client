@@ -44,7 +44,6 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
 
   const onPlaidExit = useCallback((err: any, metadata: any) => {
     if (err) {
-      console.error('Plaid Link exit error:', err);
       toast.error('Bank connection cancelled or failed');
     }
     restoreScroll();
@@ -52,12 +51,9 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
   }, [onExit, restoreScroll]);
 
   const onPlaidEvent = useCallback((eventName: string, metadata: any) => {
-    // Log Plaid Link events for debugging
-    console.log('Plaid Link event:', eventName, metadata);
     if (eventName === 'OPEN') {
       try {
-        // Let Plaid manage scroll if it wants; ensure we don't double-lock
-        // No-op here, but keep for future instrumentation
+        
       } catch {}
     }
     if (eventName === 'EXIT' || eventName === 'HANDOFF' || eventName === 'SUCCESS') {
@@ -120,7 +116,6 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
           localStorage.setItem('plaid_link_token', response.link_token);
           setMountLink(true);
         } catch (error) {
-          console.error('Failed to create link token:', error);
           toast.error('Failed to initialize bank connection');
         } finally {
           setIsLoading(false);

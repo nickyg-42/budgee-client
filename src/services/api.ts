@@ -1,6 +1,6 @@
 import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 class ApiService {
   private token: string | null = null;
@@ -24,26 +24,17 @@ class ApiService {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
 
-      console.log(`API Request: ${options?.method || 'GET'} ${API_BASE_URL}${url}`);
-      console.log('Request headers:', headers);
-      if (options?.body) {
-        console.log('Request body:', options.body);
-      }
-
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_ROOT}/api${url}`,
+      {
         ...options,
         headers,
       });
-
-      console.log(`API Response: ${response.status} ${response.statusText}`);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         
         try {
           const errorData = await response.json();
-          console.log('Error response data:', errorData);
           if (errorData.message) {
             errorMessage = errorData.message;
           } else if (errorData.error) {
@@ -67,10 +58,9 @@ class ApiService {
       }
 
       const responseData = await response.json();
-      console.log('Response data:', responseData);
       return responseData;
     } catch (error) {
-      console.error('API call failed:', error);
+      
       throw error;
     }
   }
@@ -129,22 +119,18 @@ class ApiService {
 
   // Authentication
   async login(data: LoginRequest): Promise<AuthResponse> {
-    console.log('API login request with data:', data);
     const response = await this.fetchWithErrorHandling('/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    console.log('API login response:', response);
     return response;
   }
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    console.log('API register request with data:', data);
     const response = await this.fetchWithErrorHandling('/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    console.log('API register response:', response);
     return response;
   }
 
@@ -203,7 +189,6 @@ class ApiService {
     try {
       return await this.getDashboardData();
     } catch (error) {
-      console.error('Failed to fetch dashboard stats, using fallback data:', error);
       // Fallback mock data if backend endpoint doesn't exist yet
       return {
         current_month: {
