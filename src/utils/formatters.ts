@@ -108,17 +108,19 @@ export const debounce = <T extends (...args: unknown[]) => unknown>(
 
 export const groupTransactionsByCategory = (transactions: Transaction[]) => {
   const grouped: Record<string, number> = {};
-  
+
   transactions.forEach(transaction => {
-    const category = transaction.primary_category || 'OTHER';
-    grouped[category] = (grouped[category] || 0) + Math.abs(transaction.amount);
+    if (transaction.amount > 0) {
+      const category = transaction.primary_category || 'OTHER';
+      grouped[category] = (grouped[category] || 0) + transaction.amount;
+    }
   });
-  
+
   return Object.entries(grouped)
     .map(([category, amount]) => ({
       category,
-      amount: -amount, // Make negative for expense display
-      percentage: 0 // Will be calculated later
+      amount: -amount,
+      percentage: 0
     }))
     .sort((a, b) => a.amount - b.amount);
 };

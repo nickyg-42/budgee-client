@@ -6,7 +6,7 @@ import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor } from '../utils/formatters';
-import { PiggyBank, Calendar, TrendingUp } from 'lucide-react';
+import { PiggyBank, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Dashboard = () => {
@@ -102,7 +102,7 @@ export const Dashboard = () => {
       const b = buckets.get(key);
       if (!b) return;
       const amt = asNumber(t?.amount);
-      if (amt >= 0) b.income += amt; else b.expenses += Math.abs(amt);
+      if (amt > 0) b.expenses += amt; else b.income += Math.abs(amt);
     });
     return Array.from(buckets.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>({ key:k, month:v.label, income:v.income, expenses:v.expenses }));
   }, [transactions]);
@@ -131,12 +131,10 @@ export const Dashboard = () => {
     return { income: b ? b.income : 0, expenses: b ? b.expenses : 0 };
   }, [monthAgg]);
 
-  const expenseChange = formatPercentage(
-    calculatePercentageChange(currentMonthStats.expenses, previousMonthStats.expenses)
-  );
-  const incomeChange = formatPercentage(
-    calculatePercentageChange(currentMonthStats.income, previousMonthStats.income)
-  );
+  const expenseChangeValue = calculatePercentageChange(currentMonthStats.expenses, previousMonthStats.expenses);
+  const expenseChange = formatPercentage(expenseChangeValue);
+  const incomeChangeValue = calculatePercentageChange(currentMonthStats.income, previousMonthStats.income);
+  const incomeChange = formatPercentage(incomeChangeValue);
 
   return (
     <Layout>
@@ -154,7 +152,7 @@ export const Dashboard = () => {
                   {formatPercentage(currentMonthStats.savings_rate)}
                 </div>
                 <p className="text-sm text-gray-600">
-                  You spent {formatCurrency(Math.abs(currentMonthStats.savings))} more than you made 😊
+                  You spent {formatCurrency(Math.abs(currentMonthStats.savings))} more than you made
                 </p>
               </div>
             </div>
@@ -172,8 +170,12 @@ export const Dashboard = () => {
                 <div className="text-3xl font-bold text-red-500 mb-1">
                   {formatCurrency(currentMonthStats.expenses)}
                 </div>
-                <div className="flex items-center text-sm text-red-500 mb-1">
-                  <TrendingUp className="w-4 h-4 mr-1" />
+                <div className={`flex items-center text-sm ${expenseChangeValue > 0 ? 'text-red-500' : 'text-green-500'} mb-1`}>
+                  {expenseChangeValue > 0 ? (
+                    <TrendingUp className="w-4 h-4 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 mr-1" />
+                  )}
                   {expenseChange}
                 </div>
                 <p className="text-sm text-gray-600">
@@ -195,8 +197,12 @@ export const Dashboard = () => {
                 <div className="text-3xl font-bold text-green-500 mb-1">
                   {formatCurrency(currentMonthStats.income)}
                 </div>
-                <div className="flex items-center text-sm text-green-500 mb-1">
-                  <TrendingUp className="w-4 h-4 mr-1" />
+                <div className={`flex items-center text-sm ${incomeChangeValue >= 0 ? 'text-green-500' : 'text-red-500'} mb-1`}>
+                  {incomeChangeValue >= 0 ? (
+                    <TrendingUp className="w-4 h-4 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 mr-1" />
+                  )}
                   {incomeChange}
                 </div>
                 <p className="text-sm text-gray-600">
@@ -243,9 +249,11 @@ export const Dashboard = () => {
                   const grouped = new Map<string, number>();
                   d.forEach((t: any) => {
                     const amt = asNumber(t?.amount);
-                    const cat = safePrimaryCategory(t);
-                    const prev = grouped.get(cat) || 0;
-                    grouped.set(cat, prev + Math.abs(amt));
+                    if (amt > 0) {
+                      const cat = safePrimaryCategory(t);
+                      const prev = grouped.get(cat) || 0;
+                      grouped.set(cat, prev + amt);
+                    }
                   });
                   const entries = Array.from(grouped.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10);
                   return entries.map(([cat, amt], index) => (
@@ -273,9 +281,11 @@ export const Dashboard = () => {
                   const grouped = new Map<string, number>();
                   d.forEach((t: any) => {
                     const amt = asNumber(t?.amount);
-                    const cat = safePrimaryCategory(t);
-                    const prev = grouped.get(cat) || 0;
-                    grouped.set(cat, prev + Math.abs(amt));
+                    if (amt > 0) {
+                      const cat = safePrimaryCategory(t);
+                      const prev = grouped.get(cat) || 0;
+                      grouped.set(cat, prev + amt);
+                    }
                   });
                   const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));
                   return <CategoryChart data={data} />;

@@ -107,7 +107,7 @@ export const Transactions = () => {
       const bucket = buckets.get(key);
       if (!bucket) return;
       const amt = asNumber(t.amount);
-      if (amt >= 0) bucket.income += amt; else bucket.expenses += Math.abs(amt);
+      if (amt > 0) bucket.expenses += amt; else bucket.income += Math.abs(amt);
     });
 
     return Array.from(buckets.entries())
@@ -217,7 +217,7 @@ export const Transactions = () => {
     let expenses = 0;
     (filteredTransactions || []).forEach((t: any) => {
       const amt = asNumber(t?.amount);
-      if (amt >= 0) income += amt; else expenses += Math.abs(amt);
+      if (amt > 0) expenses += amt; else income += Math.abs(amt);
     });
     return { income, expenses, cashFlow: income - expenses };
   }, [filteredTransactions]);
@@ -285,7 +285,7 @@ export const Transactions = () => {
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-base font-semibold text-gray-700">Net Difference</p>
+                  <p className="text-base font-semibold text-gray-700">Cash Flow</p>
                   <p className={`text-4xl font-extrabold ${summaryTotals.cashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summaryTotals.cashFlow)}</p>
                 </div>
                 <div>
@@ -521,8 +521,8 @@ export const Transactions = () => {
                     </td>
                     
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
-                      <span className={asNumber(transaction.amount) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {formatCurrency(asNumber(transaction.amount))}
+                      <span className={asNumber(transaction.amount) < 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
                       </span>
                     </td>
                     
