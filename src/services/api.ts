@@ -166,10 +166,17 @@ class ApiService {
     });
   }
 
-  async deleteAccount(): Promise<{ success: boolean }>{
-    return this.fetchWithErrorHandling('/user', {
+  async deleteAccount(userId: number): Promise<{ success: boolean }>{
+    const res = await this.fetchWithErrorHandling('/user', {
       method: 'DELETE',
+      body: JSON.stringify({ user_id: userId })
     });
+    this.token = null;
+    localStorage.removeItem('token');
+    try {
+      window.location.href = '/register';
+    } catch {}
+    return res;
   }
 
   async deletePlaidItem(itemId: string): Promise<{ success: boolean }>{

@@ -148,11 +148,15 @@ export const Dashboard = () => {
                   <PiggyBank className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Savings Rate</span>
                 </div>
-                <div className="text-3xl font-bold text-red-500 mb-1">
+                <div className={`text-3xl font-bold ${currentMonthStats.savings >= 0 ? 'text-green-500' : 'text-red-500'} mb-1`}>
                   {formatPercentage(currentMonthStats.savings_rate)}
                 </div>
                 <p className="text-sm text-gray-600">
-                  You spent {formatCurrency(Math.abs(currentMonthStats.savings))} more than you made
+                  {currentMonthStats.savings > 0
+                    ? `You saved ${formatCurrency(currentMonthStats.savings)}`
+                    : currentMonthStats.savings < 0
+                      ? `You spent ${formatCurrency(Math.abs(currentMonthStats.savings))} more than you made`
+                      : 'You broke even'}
                 </p>
               </div>
             </div>
@@ -219,7 +223,7 @@ export const Dashboard = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Select Month</span>
+              <span className="text-sm text-gray-600">Monthly Spending Breakdown</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -241,9 +245,10 @@ export const Dashboard = () => {
                     const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
                     return txm === ym;
                   });
-                  if (d.length === 0) {
+                  const hasExpenses = d.some((t: any) => asNumber(t?.amount) > 0);
+                  if (!hasExpenses) {
                     return (
-                      <div className="py-4 text-sm text-gray-600">No transactions for this month</div>
+                      <div className="py-4 text-sm text-gray-600">No expenses for this month</div>
                     );
                   }
                   const grouped = new Map<string, number>();
@@ -275,7 +280,8 @@ export const Dashboard = () => {
                     const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
                     return txm === ym;
                   });
-                  if (d.length === 0) {
+                  const hasExpenses = d.some((t: any) => asNumber(t?.amount) > 0);
+                  if (!hasExpenses) {
                     return <CategoryChart data={[{ category: 'DEFAULT', amount: -1, percentage: 0 }]} />;
                   }
                   const grouped = new Map<string, number>();

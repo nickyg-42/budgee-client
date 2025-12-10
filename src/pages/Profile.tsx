@@ -213,7 +213,8 @@ export const Profile = () => {
                     const ok = window.confirm('Are you sure you want to delete your account?');
                     if (!ok) return;
                     try {
-                      await apiService.deleteAccount();
+                      const uid = (profileUser as any)?.id || user?.id;
+                      await apiService.deleteAccount(Number(uid));
                       toast.success('Account deleted');
                       logout();
                     } catch (e) {

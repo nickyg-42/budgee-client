@@ -66,6 +66,7 @@ export const getCategoryColor = (category: string): string => {
     GENERAL_MERCHANDISE: '#3B82F6',
     PERSONAL_CARE: '#60A5FA',
     RENT_AND_UTILITIES: '#F97316',
+    GOVERNMENT_AND_NON_PROFIT: '#0EA5E9',
     DEFAULT: '#9CA3AF'
   };
   return colors[key] || colors.DEFAULT;

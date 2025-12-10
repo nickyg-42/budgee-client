@@ -25,6 +25,19 @@ export const Transactions = () => {
   const [editDate, setEditDate] = useState('');
   const [editAmount, setEditAmount] = useState('');
 
+  const monthInitRef = useRef(false);
+  useEffect(() => {
+    if (monthInitRef.current) return;
+    monthInitRef.current = true;
+    if (!transactionFilters.date_from) {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      setTransactionFilters({ date_from: `${y}-${m}` });
+      setCurrentPage(1);
+    }
+  }, []);
+
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -160,6 +173,8 @@ export const Transactions = () => {
         return <Heart className="w-4 h-4 text-gray-700" />;
       case 'RENT_AND_UTILITIES':
         return <Home className="w-4 h-4 text-gray-700" />;
+      case 'GOVERNMENT_AND_NON_PROFIT':
+        return <Circle className="w-4 h-4 text-gray-700" />;
       default:
         return <Circle className="w-4 h-4 text-gray-700" />;
     }
@@ -211,6 +226,8 @@ export const Transactions = () => {
     }
     return true;
   });
+
+  const totalTransactionsCount = useMemo(() => (transactions || []).filter((t: any) => !!t && typeof t === 'object').length, [transactions]);
 
   const summaryTotals = useMemo(() => {
     let income = 0;
@@ -297,7 +314,7 @@ export const Transactions = () => {
                   <p className="text-4xl font-extrabold text-red-500">{formatCurrency(summaryTotals.expenses)}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">{filteredTransactions.length} Transactions</p>
+                  <p className="text-sm text-gray-600">{filteredTransactions.length < totalTransactionsCount ? `From ${filteredTransactions.length} transactions (filtered)` : 'From all transactions'}</p>
                 </div>
               </div>
             </CardContent>
@@ -631,15 +648,15 @@ export const Transactions = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
-              value={editCategory}
-              onChange={(e) => setEditCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {['TRANSPORTATION','TRAVEL','FOOD_AND_DRINK','ENTERTAINMENT','TRANSFER_OUT','INCOME','LOAN_PAYMENTS','GENERAL_MERCHANDISE','PERSONAL_CARE','RENT_AND_UTILITIES'].map(c => (
+              <select
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+              {['TRANSPORTATION','TRAVEL','FOOD_AND_DRINK','ENTERTAINMENT','TRANSFER_OUT','INCOME','LOAN_PAYMENTS','GENERAL_MERCHANDISE','PERSONAL_CARE','RENT_AND_UTILITIES','GOVERNMENT_AND_NON_PROFIT'].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
-            </select>
+              </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
