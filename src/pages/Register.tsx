@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
-import { PiggyBank, Eye, EyeOff } from 'lucide-react';
+import { Bird, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Register = () => {
@@ -75,7 +75,7 @@ export const Register = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-              <PiggyBank className="w-8 h-8 text-white" />
+              <Bird className="w-8 h-8 text-white" />
             </div>
             <span className="text-3xl font-bold text-gray-900">Budgee</span>
           </div>
