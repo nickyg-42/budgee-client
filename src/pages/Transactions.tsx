@@ -252,6 +252,40 @@ export const Transactions = () => {
     return found?.name || 'Unknown Account';
   };
 
+  const handleManualSync = async () => {
+    try {
+      setIsLoading(true);
+      const items = await apiService.getPlaidItems();
+      if (!items || items.length === 0) {
+        toast.info('No connected institutions to sync');
+        setIsLoading(false);
+        return;
+      }
+      for (const item of items) {
+        try {
+          await apiService.syncTransactions(String(item.id));
+        } catch {}
+      }
+      const allAccounts: any[] = [];
+      const accountsByItem = await Promise.all((items || []).map((item) =>
+        apiService.getAccountsFromDB(item.id).catch(() => [])
+      ));
+      accountsByItem.forEach((arr) => allAccounts.push(...(arr || [])));
+      setAccounts(allAccounts || []);
+      const txnsByAccount = await Promise.all((allAccounts || []).map((acc) =>
+        apiService.getTransactions(acc.id).catch(() => [])
+      ));
+      const normalized = (txnsByAccount || []).map((arr) => Array.isArray(arr) ? arr : (arr ? [arr] : []));
+      const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
+      setTransactions(allTxns as any);
+      toast.success('Transactions synced');
+    } catch {
+      toast.error('Failed to sync transactions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Layout>
       {/* Date Range and Chart */}
@@ -337,6 +371,13 @@ export const Transactions = () => {
               <span className="text-sm text-gray-600">out of {filteredTransactions.length}</span>
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={handleManualSync}
+                disabled={isLoading}
+                className="px-3 py-1 rounded-md border border-blue-600 text-blue-600 bg-white hover:bg-blue-50 disabled:opacity-50"
+              >
+                Sync Transactions
+              </button>
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}

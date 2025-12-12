@@ -338,7 +338,7 @@ export const Dashboard = () => {
                    <div key={account.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                      <div>
                        <span className="font-medium text-gray-900">{account?.name || 'Unknown Account'}</span>
-                       <p className="text-sm text-gray-600">{account?.subtype || account?.type || 'Unknown'}</p>
+                       <p className="text-sm text-gray-600">{account?.type || account?.subtype || 'Unknown'}</p>
                      </div>
                      <div className="flex items-center space-x-2">
                        <span className={`font-bold ${

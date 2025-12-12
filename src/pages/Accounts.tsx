@@ -153,7 +153,7 @@ export const Accounts = () => {
   }, 0);
 
   const accountsByType = (accounts || []).reduce((acc, account) => {
-    const category = (account?.subtype || 'unknown').toLowerCase();
+    const category = (account?.type || 'unknown').toLowerCase();
     if (!acc[category]) acc[category] = [];
     acc[category].push(account);
     return acc;
@@ -341,7 +341,7 @@ export const Accounts = () => {
                     <div>
                       <p className="font-medium text-gray-900">{account.name || 'Unknown Account'}</p>
                       <p className="text-sm text-gray-600">
-                        {(institutionNameLookup.get(String((account as any).item_id)) || 'Unknown Institution')} • {account.type || account.subtype || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
+                        {(institutionNameLookup.get(String((account as any).item_id)) || 'Unknown Institution')} • {account.subtype || account.type || 'Unknown'} {account.mask ? `••••${account.mask}` : ''}
                       </p>
                     </div>
                     <div className="text-right">
