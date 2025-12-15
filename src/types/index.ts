@@ -5,8 +5,10 @@ export interface Transaction {
   date: string;
   name: string;
   merchant_name?: string;
-  category: string;
   primary_category: string;
+  detailed_category?: string;
+  payment_channel?: string;
+  personal_finance_category_icon_url?: string;
   pending: boolean;
   account_owner?: string;
   transaction_id: string;
@@ -73,6 +75,7 @@ export interface FilterOptions {
   account: string;
   user: string;
   primary_category: string;
+  payment_channel: string;
   detailed_category: string;
   tags: string;
   date_from: string;

@@ -133,40 +133,10 @@ export const Transactions = () => {
   }, [chartMonths]);
 
   const safeName = (t: any) => (t?.name ?? t?.merchant_name ?? '');
-  const safePrimaryCategory = (t: any) => (t?.primary_category ?? t?.category ?? '');
+  const safePrimaryCategory = (t: any) => (t?.primary_category ?? '');
   const isPending = (t: any) => {
     const v = (t as any)?.pending;
     return v === true || v === 't' || v === 'true';
-  };
-
-  const getCategoryIcon = (cat: string) => {
-    const c = (cat || '').toUpperCase();
-    switch (c) {
-      case 'TRANSPORTATION':
-        return <Car className="w-4 h-4 text-gray-700" />;
-      case 'TRAVEL':
-        return <Plane className="w-4 h-4 text-gray-700" />;
-      case 'FOOD_AND_DRINK':
-        return <Utensils className="w-4 h-4 text-gray-700" />;
-      case 'ENTERTAINMENT':
-        return <Music2 className="w-4 h-4 text-gray-700" />;
-      case 'TRANSFER_OUT':
-        return <ArrowUpRight className="w-4 h-4 text-gray-700" />;
-      case 'INCOME':
-        return <ArrowDownRight className="w-4 h-4 text-gray-700" />;
-      case 'LOAN_PAYMENTS':
-        return <CreditCard className="w-4 h-4 text-gray-700" />;
-      case 'GENERAL_MERCHANDISE':
-        return <ShoppingBag className="w-4 h-4 text-gray-700" />;
-      case 'PERSONAL_CARE':
-        return <Heart className="w-4 h-4 text-gray-700" />;
-      case 'RENT_AND_UTILITIES':
-        return <Home className="w-4 h-4 text-gray-700" />;
-      case 'GOVERNMENT_AND_NON_PROFIT':
-        return <Circle className="w-4 h-4 text-gray-700" />;
-      default:
-        return <Circle className="w-4 h-4 text-gray-700" />;
-    }
   };
 
   const monthOptions = useMemo(() => {
@@ -182,6 +152,24 @@ export const Transactions = () => {
     return options;
   }, []);
 
+  const paymentChannelOptions = useMemo(() => {
+    const set = new Set<string>();
+    (transactions || []).forEach((t: any) => {
+      const v = (t as any)?.payment_channel;
+      if (v) set.add(String(v));
+    });
+    return Array.from(set);
+  }, [transactions]);
+
+  const detailedCategoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    (transactions || []).forEach((t: any) => {
+      const v = (t as any)?.detailed_category;
+      if (v) set.add(String(v));
+    });
+    return Array.from(set);
+  }, [transactions]);
+
   const filteredTransactions = (transactions || []).filter(transaction => {
     if (!transaction || typeof transaction !== 'object') {
       return false;
@@ -195,6 +183,14 @@ export const Transactions = () => {
     }
     if (transactionFilters.primary_category !== 'All' && safePrimaryCategory(transaction) !== transactionFilters.primary_category) {
       return false;
+    }
+    if (transactionFilters.payment_channel !== 'All') {
+      const pc = String((transaction as any)?.payment_channel || '');
+      if (pc !== transactionFilters.payment_channel) return false;
+    }
+    if (transactionFilters.detailed_category !== 'All') {
+      const dc = String((transaction as any)?.detailed_category || '');
+      if (dc !== transactionFilters.detailed_category) return false;
     }
     // Month filter
     if (transactionFilters.date_from) {
@@ -378,6 +374,19 @@ export const Transactions = () => {
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div className="col-span-1">
+                <span className="text-sm font-medium">Payment Channel</span>
+                <select
+                  value={transactionFilters.payment_channel}
+                  onChange={(e) => setTransactionFilters({ payment_channel: e.target.value })}
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="All">All</option>
+                  {paymentChannelOptions.map(pc => (
+                    <option key={pc} value={pc}>{pc}</option>
+                  ))}
+                </select>
+              </div>
               
               <div className="col-span-1">
                 <span className="text-sm font-medium">Account</span>
@@ -405,6 +414,19 @@ export const Transactions = () => {
                     .map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <span className="text-sm font-medium">Detailed Category</span>
+                <select
+                  value={transactionFilters.detailed_category}
+                  onChange={(e) => setTransactionFilters({ detailed_category: e.target.value })}
+                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="All">All</option>
+                  {detailedCategoryOptions.map(dc => (
+                    <option key={dc} value={dc}>{dc}</option>
+                  ))}
                 </select>
               </div>
               
@@ -473,7 +495,9 @@ export const Transactions = () => {
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Merchant</th>
                   <th className="px-4 py-3">Account</th>
+                  <th className="px-4 py-3">Payment Channel</th>
                   <th className="px-4 py-3">Primary Category</th>
+                  <th className="px-4 py-3">Detailed Category</th>
                   <th className="px-4 py-3">Pending</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Amount</th>
@@ -491,48 +515,61 @@ export const Transactions = () => {
                           onChange={() => handleSelectTransaction(String((transaction as any).id))}
                           className="rounded"
                         />
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          {getCategoryIcon(safePrimaryCategory(transaction))}
+                        <div className="w-16 h-16 flex items-center justify-center">
+                          <img
+                            src={(transaction as any).personal_finance_category_icon_url}
+                            alt="category"
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                          />
                         </div>
                       </div>
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-4 py-6 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{(transaction as any).name || 'Unknown'}</div>
                       </div>
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
                       {(transaction as any).merchant_name || ''}
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
                       {getAccountName(transaction.account_id)}
                     </td>
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
+                      {(transaction as any).payment_channel || ''}
+                    </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-4 py-6 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                         {safePrimaryCategory(transaction)}
                       </span>
                     </td>
+                    <td className="px-4 py-6 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
+                        {(transaction as any).detailed_category || ''}
+                      </span>
+                    </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
                       {isPending(transaction) ? 'Yes' : 'No'}
                     </td>
                     
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
                       {formatDate(transaction.date)}
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm font-bold">
                       <span className={asNumber(transaction.amount) < 0 ? 'text-green-600' : 'text-red-600'}>
                         {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
                       </span>
                     </td>
                     
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <button className="text-blue-500 hover:text-blue-700">
                           <Edit className="w-4 h-4" onClick={() => {
@@ -606,7 +643,6 @@ export const Transactions = () => {
                 try {
                   const id = String((editTx as any).id);
                   const payload: any = {
-                    category: editCategory,
                     primary_category: editCategory,
                     name: editName,
                     merchant_name: editMerchantName,

@@ -177,7 +177,7 @@ class ApiService {
     });
   }
 
-  async updateTransaction(transactionId: string, data: { category?: string; merchant_name?: string; date?: string; amount?: number; primary_category?: string; name?: string }): Promise<any> {
+  async updateTransaction(transactionId: string, data: { merchant_name?: string; date?: string; amount?: number; primary_category?: string; name?: string; detailed_category?: string; payment_channel?: string; personal_finance_category_icon_url?: string }): Promise<any> {
     return this.fetchWithErrorHandling(`/plaid/transactions/${transactionId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

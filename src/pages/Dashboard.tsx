@@ -51,7 +51,7 @@ export const Dashboard = () => {
     return Number.isFinite(n) ? n : 0;
   };
 
-  const safePrimaryCategory = (t: any) => (t?.primary_category ?? t?.category ?? 'OTHER');
+  const safePrimaryCategory = (t: any) => (t?.primary_category ?? 'OTHER');
 
   const monthOptions = useMemo(() => {
     const now = new Date();

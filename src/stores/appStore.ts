@@ -35,6 +35,7 @@ const initialFilters: FilterOptions = {
   account: 'All',
   user: 'All',
   primary_category: 'All',
+  payment_channel: 'All',
   detailed_category: 'All',
   tags: 'All',
   date_from: '',
