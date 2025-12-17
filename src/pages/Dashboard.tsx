@@ -102,7 +102,11 @@ export const Dashboard = () => {
       const b = buckets.get(key);
       if (!b) return;
       const amt = asNumber(t?.amount);
-      if (amt > 0) b.expenses += amt; else b.income += Math.abs(amt);
+      if ((t as any).expense === true) {
+        b.expenses += Math.abs(amt);
+      } else if (amt < 0) {
+        b.income += Math.abs(amt);
+      }
     });
     return Array.from(buckets.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>({ key:k, month:v.label, income:v.income, expenses:v.expenses }));
   }, [transactions]);
@@ -245,7 +249,7 @@ export const Dashboard = () => {
                     const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
                     return txm === ym;
                   });
-                  const hasExpenses = d.some((t: any) => asNumber(t?.amount) > 0);
+                  const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
                   if (!hasExpenses) {
                     return (
                       <div className="py-4 text-sm text-gray-600">No expenses for this month</div>
@@ -254,10 +258,10 @@ export const Dashboard = () => {
                   const grouped = new Map<string, number>();
                   d.forEach((t: any) => {
                     const amt = asNumber(t?.amount);
-                    if (amt > 0) {
+                    if ((t as any)?.expense === true) {
                       const cat = safePrimaryCategory(t);
                       const prev = grouped.get(cat) || 0;
-                      grouped.set(cat, prev + amt);
+                      grouped.set(cat, prev + Math.abs(amt));
                     }
                   });
                   const entries = Array.from(grouped.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -280,17 +284,17 @@ export const Dashboard = () => {
                     const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
                     return txm === ym;
                   });
-                  const hasExpenses = d.some((t: any) => asNumber(t?.amount) > 0);
+                  const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
                   if (!hasExpenses) {
                     return <CategoryChart data={[{ category: 'DEFAULT', amount: -1, percentage: 0 }]} />;
                   }
                   const grouped = new Map<string, number>();
                   d.forEach((t: any) => {
                     const amt = asNumber(t?.amount);
-                    if (amt > 0) {
+                    if ((t as any)?.expense === true) {
                       const cat = safePrimaryCategory(t);
                       const prev = grouped.get(cat) || 0;
-                      grouped.set(cat, prev + amt);
+                      grouped.set(cat, prev + Math.abs(amt));
                     }
                   });
                   const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));

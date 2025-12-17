@@ -10,7 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 
 export const Transactions = () => {
-  const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems } = useAppStore();
+  const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +24,9 @@ export const Transactions = () => {
   const [editMerchantName, setEditMerchantName] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editAmount, setEditAmount] = useState('');
+  const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<'date' | 'amount' | null>('date');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc' | null>('desc');
 
   const monthInitRef = useRef(false);
   useEffect(() => {
@@ -109,7 +112,11 @@ export const Transactions = () => {
       const bucket = buckets.get(key);
       if (!bucket) return;
       const amt = asNumber(t.amount);
-      if (amt > 0) bucket.expenses += amt; else bucket.income += Math.abs(amt);
+      if ((t as any).expense === true) {
+        bucket.expenses += Math.abs(amt);
+      } else if (amt < 0) {
+        bucket.income += Math.abs(amt);
+      }
     });
 
     return Array.from(buckets.entries())
@@ -219,7 +226,11 @@ export const Transactions = () => {
     let expenses = 0;
     (filteredTransactions || []).forEach((t: any) => {
       const amt = asNumber(t?.amount);
-      if (amt > 0) expenses += amt; else income += Math.abs(amt);
+      if ((t as any).expense === true) {
+        expenses += Math.abs(amt);
+      } else if (amt < 0) {
+        income += Math.abs(amt);
+      }
     });
     return { income, expenses, cashFlow: income - expenses };
   }, [filteredTransactions]);
@@ -247,6 +258,181 @@ export const Transactions = () => {
     const found = (accounts || []).find((a: any) => String(a?.id) === idStr);
     return found?.name || 'Unknown Account';
   };
+
+  // Column definitions
+  type TransactionColumnId =
+    | 'icon'
+    | 'name'
+    | 'merchant'
+    | 'amount'
+    | 'account'
+    | 'primaryCategory'
+    | 'date'
+    | 'actions'
+    | 'paymentChannel'
+    | 'detailedCategory'
+    | 'pending';
+
+  const defaultColumns: { id: TransactionColumnId; label: string; render: (t: any) => JSX.Element }[] = [
+    {
+      id: 'icon',
+      label: 'Icon',
+      render: (transaction: any) => (
+        <div className="w-12 h-12 flex items-center justify-center">
+          <img
+            src={(transaction as any).personal_finance_category_icon_url}
+            alt="category"
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'name',
+      label: 'Name',
+      render: (transaction: any) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{(transaction as any).name || 'Unknown'}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'merchant',
+      label: 'Merchant',
+      render: (transaction: any) => <span className="text-sm text-gray-600">{(transaction as any).merchant_name || ''}</span>,
+    },
+    {
+      id: 'amount',
+      label: 'Amount',
+      render: (transaction: any) => (
+        <span className={`text-sm font-bold ${asNumber(transaction.amount) < 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
+        </span>
+      ),
+    },
+    {
+      id: 'account',
+      label: 'Account',
+      render: (transaction: any) => <span className="text-sm text-gray-600">{getAccountName(transaction.account_id)}</span>,
+    },
+    {
+      id: 'primaryCategory',
+      label: 'Primary Category',
+      render: (transaction: any) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+          {safePrimaryCategory(transaction)}
+        </span>
+      ),
+    },
+    {
+      id: 'date',
+      label: 'Date',
+      render: (transaction: any) => <span className="text-sm text-gray-600">{formatDate(transaction.date)}</span>,
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      render: (transaction: any) => (
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <button className="text-blue-500 hover:text-blue-700">
+            <Edit
+              className="w-4 h-4"
+              onClick={() => {
+                setEditTx(transaction);
+                setEditCategory(safePrimaryCategory(transaction));
+                setEditName((transaction as any).name || '');
+                setEditMerchantName(transaction.merchant_name || safeName(transaction));
+                setEditDate((transaction as any).date ? String((transaction as any).date).slice(0, 10) : '');
+                setEditAmount(String(asNumber(transaction.amount)));
+                setIsEditOpen(true);
+              }}
+            />
+          </button>
+          <button
+            className="text-blue-500 hover:text-blue-700"
+            onClick={async () => {
+              const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
+              if (!ok) return;
+              try {
+                await apiService.deleteTransaction(String((transaction as any).id));
+                setTransactions((transactions || []).filter((t: any) => String((t as any).id) !== String((transaction as any).id)) as any);
+                toast.success('Transaction deleted');
+              } catch (e) {
+                toast.error('Failed to delete transaction');
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const optionalColumns: { id: TransactionColumnId; label: string; render: (t: any) => JSX.Element; enabled: boolean }[] = [
+    {
+      id: 'paymentChannel',
+      label: 'Payment Channel',
+      enabled: !!transactionTableColumns?.payment_channel,
+      render: (transaction: any) => <span className="text-sm text-gray-600">{(transaction as any).payment_channel || ''}</span>,
+    },
+    {
+      id: 'detailedCategory',
+      label: 'Detailed Category',
+      enabled: !!transactionTableColumns?.detailed_category,
+      render: (transaction: any) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
+          {(transaction as any).detailed_category || ''}
+        </span>
+      ),
+    },
+    {
+      id: 'pending',
+      label: 'Pending',
+      enabled: !!transactionTableColumns?.pending,
+      render: (transaction: any) => <span className="text-sm text-gray-600">{isPending(transaction) ? 'Yes' : 'No'}</span>,
+    },
+  ];
+
+  const visibleColumns = [...defaultColumns, ...optionalColumns.filter((c) => c.enabled)];
+
+  const handleSortClick = (id: TransactionColumnId) => {
+    if (id !== 'date' && id !== 'amount') return;
+    if (sortKey === id) {
+      if (sortDir === 'desc') {
+        setSortDir('asc');
+      } else if (sortDir === 'asc') {
+        setSortKey(null);
+        setSortDir(null);
+      } else {
+        setSortDir('desc');
+      }
+    } else {
+      setSortKey(id);
+      setSortDir('desc');
+    }
+    setCurrentPage(1);
+  };
+
+  const sortedTransactions = useMemo(() => {
+    const data = [...filteredTransactions];
+    if (!sortKey || !sortDir) return data;
+    const cmp = (a: any, b: any) => {
+      if (sortKey === 'date') {
+        const ad = new Date(a?.date);
+        const bd = new Date(b?.date);
+        const at = isNaN(ad.getTime()) ? 0 : ad.getTime();
+        const bt = isNaN(bd.getTime()) ? 0 : bd.getTime();
+        return sortDir === 'desc' ? bt - at : at - bt;
+      }
+      const aa = asNumber(a?.amount);
+      const bb = asNumber(b?.amount);
+      return sortDir === 'desc' ? bb - aa : aa - bb;
+    };
+    data.sort(cmp);
+    return data;
+  }, [filteredTransactions, sortKey, sortDir]);
 
   return (
     <Layout>
@@ -332,7 +518,56 @@ export const Transactions = () => {
               </select>
               <span className="text-sm text-gray-600">out of {filteredTransactions.length}</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 relative">
+              <button
+                onClick={() => setIsColumnsOpen((v) => !v)}
+                className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Columns
+              </button>
+              {isColumnsOpen && (
+                <div className="absolute right-0 top-10 z-10 w-56 bg-white border border-gray-200 rounded-md shadow-lg p-3">
+                  <div className="text-xs font-semibold text-gray-600 mb-2">Optional Columns</div>
+                  <label className="flex items-center justify-between py-1">
+                    <span className="text-sm text-gray-700">Payment Channel</span>
+                    <input
+                      type="checkbox"
+                      checked={!!transactionTableColumns?.payment_channel}
+                      onChange={(e) => setTransactionTableColumns({ payment_channel: e.target.checked })}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between py-1">
+                    <span className="text-sm text-gray-700">Detailed Category</span>
+                    <input
+                      type="checkbox"
+                      checked={!!transactionTableColumns?.detailed_category}
+                      onChange={(e) => setTransactionTableColumns({ detailed_category: e.target.checked })}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between py-1">
+                    <span className="text-sm text-gray-700">Pending</span>
+                    <input
+                      type="checkbox"
+                      checked={!!transactionTableColumns?.pending}
+                      onChange={(e) => setTransactionTableColumns({ pending: e.target.checked })}
+                    />
+                  </label>
+                  <div className="mt-3 flex items-center justify-between">
+                    <button
+                      className="text-xs text-gray-600 underline"
+                      onClick={() => setTransactionTableColumns({ payment_channel: false, detailed_category: false, pending: false })}
+                    >
+                      Reset to default
+                    </button>
+                    <button
+                      className="text-xs text-gray-600 underline"
+                      onClick={() => setIsColumnsOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
@@ -374,19 +609,21 @@ export const Transactions = () => {
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="col-span-1">
-                <span className="text-sm font-medium">Payment Channel</span>
-                <select
-                  value={transactionFilters.payment_channel}
-                  onChange={(e) => setTransactionFilters({ payment_channel: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="All">All</option>
-                  {paymentChannelOptions.map(pc => (
-                    <option key={pc} value={pc}>{pc}</option>
-                  ))}
-                </select>
-              </div>
+              {transactionTableColumns?.payment_channel && (
+                <div className="col-span-1">
+                  <span className="text-sm font-medium">Payment Channel</span>
+                  <select
+                    value={transactionFilters.payment_channel}
+                    onChange={(e) => setTransactionFilters({ payment_channel: e.target.value })}
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="All">All</option>
+                    {paymentChannelOptions.map(pc => (
+                      <option key={pc} value={pc}>{pc}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               
               <div className="col-span-1">
                 <span className="text-sm font-medium">Account</span>
@@ -416,19 +653,21 @@ export const Transactions = () => {
                     ))}
                 </select>
               </div>
-              <div className="col-span-2">
-                <span className="text-sm font-medium">Detailed Category</span>
-                <select
-                  value={transactionFilters.detailed_category}
-                  onChange={(e) => setTransactionFilters({ detailed_category: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="All">All</option>
-                  {detailedCategoryOptions.map(dc => (
-                    <option key={dc} value={dc}>{dc}</option>
-                  ))}
-                </select>
-              </div>
+              {transactionTableColumns?.detailed_category && (
+                <div className="col-span-2">
+                  <span className="text-sm font-medium">Detailed Category</span>
+                  <select
+                    value={transactionFilters.detailed_category}
+                    onChange={(e) => setTransactionFilters({ detailed_category: e.target.value })}
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="All">All</option>
+                    {detailedCategoryOptions.map(dc => (
+                      <option key={dc} value={dc}>{dc}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               
               <div className="col-span-2">
                 <span className="text-sm font-medium">Month</span>
@@ -492,20 +731,33 @@ export const Transactions = () => {
               <thead>
                 <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                   <th className="px-4 py-3">Select</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Merchant</th>
-                  <th className="px-4 py-3">Account</th>
-                  <th className="px-4 py-3">Payment Channel</th>
-                  <th className="px-4 py-3">Primary Category</th>
-                  <th className="px-4 py-3">Detailed Category</th>
-                  <th className="px-4 py-3">Pending</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3">Actions</th>
+                  {visibleColumns.map((col) => {
+                    const sortable = col.id === 'date' || col.id === 'amount';
+                    const active = sortable && sortKey === col.id && !!sortDir;
+                    return (
+                      <th key={col.id} className="px-4 py-3">
+                        {sortable ? (
+                          <button
+                            onClick={() => handleSortClick(col.id)}
+                            className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
+                          >
+                            <span>{col.label}</span>
+                            {active && (sortDir === 'desc' ? (
+                              <ArrowDownRight className="w-4 h-4" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4" />
+                            ))}
+                          </button>
+                        ) : (
+                          col.label
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((transaction) => (
+                {sortedTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((transaction) => (
                   <tr key={String((transaction as any).id)} className="hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
@@ -515,88 +767,13 @@ export const Transactions = () => {
                           onChange={() => handleSelectTransaction(String((transaction as any).id))}
                           className="rounded"
                         />
-                        <div className="w-16 h-16 flex items-center justify-center">
-                          <img
-                            src={(transaction as any).personal_finance_category_icon_url}
-                            alt="category"
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        </div>
                       </div>
                     </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{(transaction as any).name || 'Unknown'}</div>
-                      </div>
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      {(transaction as any).merchant_name || ''}
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      {getAccountName(transaction.account_id)}
-                    </td>
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      {(transaction as any).payment_channel || ''}
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-                        {safePrimaryCategory(transaction)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-6 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
-                        {(transaction as any).detailed_category || ''}
-                      </span>
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      {isPending(transaction) ? 'Yes' : 'No'}
-                    </td>
-                    
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(transaction.date)}
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm font-bold">
-                      <span className={asNumber(transaction.amount) < 0 ? 'text-green-600' : 'text-red-600'}>
-                        {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
-                      </span>
-                    </td>
-                    
-                    <td className="px-4 py-6 whitespace-nowrap text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <button className="text-blue-500 hover:text-blue-700">
-                          <Edit className="w-4 h-4" onClick={() => {
-                            setEditTx(transaction);
-                            setEditCategory(safePrimaryCategory(transaction));
-                            setEditName((transaction as any).name || '');
-                            setEditMerchantName(transaction.merchant_name || safeName(transaction));
-                            setEditDate((transaction as any).date ? String((transaction as any).date).slice(0,10) : '');
-                            setEditAmount(String(asNumber(transaction.amount)));
-                            setIsEditOpen(true);
-                          }} />
-                        </button>
-                        <button className="text-blue-500 hover:text-blue-700" onClick={async () => {
-                          const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
-                          if (!ok) return;
-                          try {
-                            await apiService.deleteTransaction(String((transaction as any).id));
-                            setTransactions((transactions || []).filter((t: any) => String((t as any).id) !== String((transaction as any).id)) as any);
-                            toast.success('Transaction deleted');
-                          } catch (e) {
-                            toast.error('Failed to delete transaction');
-                          }
-                        }}>
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {visibleColumns.map((col) => (
+                      <td key={col.id} className="px-4 py-6 whitespace-nowrap">
+                        {col.render(transaction)}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

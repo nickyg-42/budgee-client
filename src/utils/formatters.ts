@@ -111,9 +111,10 @@ export const groupTransactionsByCategory = (transactions: Transaction[]) => {
   const grouped: Record<string, number> = {};
 
   transactions.forEach(transaction => {
-    if (transaction.amount > 0) {
+    if (transaction.expense === true) {
       const category = transaction.primary_category || 'OTHER';
-      grouped[category] = (grouped[category] || 0) + transaction.amount;
+      const amt = Math.abs(transaction.amount || 0);
+      grouped[category] = (grouped[category] || 0) + amt;
     }
   });
 

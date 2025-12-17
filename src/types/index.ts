@@ -12,6 +12,7 @@ export interface Transaction {
   pending: boolean;
   account_owner?: string;
   transaction_id: string;
+  expense: boolean;
 }
 
 export interface Account {
