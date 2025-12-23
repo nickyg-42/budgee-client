@@ -1,4 +1,4 @@
-import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest } from '../types';
+import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest, Budget } from '../types';
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -263,6 +263,31 @@ class ApiService {
         frequency: 'monthly'
       }
     ];
+  }
+
+  // Budgets
+  async getBudgets(): Promise<Budget[]> {
+    return this.fetchWithErrorHandling('/budgets');
+  }
+
+  async createBudget(payload: { personal_finance_category: string; amount: number }): Promise<Budget> {
+    return this.fetchWithErrorHandling('/budgets', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateBudget(id: number, payload: { amount?: number; personal_finance_category?: string }): Promise<Budget> {
+    return this.fetchWithErrorHandling(`/budgets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteBudget(id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/budgets/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 

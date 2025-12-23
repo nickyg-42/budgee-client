@@ -8,11 +8,11 @@ import { Search, Edit, Trash2, Plus, Minus, Car, Plane, Utensils, Music2, ArrowU
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
+import { PERSONAL_FINANCE_CATEGORIES } from '../constants/personalFinanceCategories';
 
 export const Transactions = () => {
   const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(25);
   const [chartMonths, setChartMonths] = useState(2);
@@ -235,23 +235,9 @@ export const Transactions = () => {
     return { income, expenses, cashFlow: income - expenses };
   }, [filteredTransactions]);
 
-  const handleSelectAll = () => {
-    if (selectedTransactions.size === filteredTransactions.length) {
-      setSelectedTransactions(new Set());
-    } else {
-      setSelectedTransactions(new Set(filteredTransactions.map(t => String((t as any).id)).filter(Boolean)));
-    }
-  };
+  // Removed mass select functionality
 
-  const handleSelectTransaction = (id: string) => {
-    const newSelected = new Set(selectedTransactions);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedTransactions(newSelected);
-  };
+  // Removed individual row selection functionality
 
   const getAccountName = (accountId: string | number) => {
     const idStr = String(accountId);
@@ -592,12 +578,6 @@ export const Transactions = () => {
             <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50">
               <div className="col-span-2">
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedTransactions.size === filteredTransactions.length}
-                    onChange={handleSelectAll}
-                    className="rounded"
-                  />
                   <Search className="w-4 h-4 text-gray-400" />
                   <span className="text-sm font-medium">Name</span>
                 </div>
@@ -730,7 +710,6 @@ export const Transactions = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
-                  <th className="px-4 py-3">Select</th>
                   {visibleColumns.map((col) => {
                     const sortable = col.id === 'date' || col.id === 'amount';
                     const active = sortable && sortKey === col.id && !!sortDir;
@@ -759,16 +738,6 @@ export const Transactions = () => {
               <tbody className="divide-y divide-gray-200">
                 {sortedTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((transaction) => (
                   <tr key={String((transaction as any).id)} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(String((transaction as any).id))}
-                          onChange={() => handleSelectTransaction(String((transaction as any).id))}
-                          className="rounded"
-                        />
-                      </div>
-                    </td>
                     {visibleColumns.map((col) => (
                       <td key={col.id} className="px-4 py-6 whitespace-nowrap">
                         {col.render(transaction)}
@@ -855,7 +824,7 @@ export const Transactions = () => {
                 onChange={(e) => setEditCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-              {['TRANSPORTATION','TRAVEL','FOOD_AND_DRINK','ENTERTAINMENT','TRANSFER_OUT','INCOME','LOAN_PAYMENTS','GENERAL_MERCHANDISE','PERSONAL_CARE','RENT_AND_UTILITIES','GOVERNMENT_AND_NON_PROFIT'].map(c => (
+              {PERSONAL_FINANCE_CATEGORIES.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
               </select>

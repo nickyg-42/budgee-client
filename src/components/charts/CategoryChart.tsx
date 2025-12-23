@@ -1,13 +1,24 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CategorySpending } from '../../types';
 import { getCategoryColor } from '../../utils/formatters';
 
 interface CategoryChartProps {
   data: CategorySpending[];
   title?: string;
+  height?: number;
+  legend?: boolean;
+  outerRadius?: number;
+  innerRadius?: number;
 }
 
-export const CategoryChart = ({ data, title }: CategoryChartProps) => {
+export const CategoryChart = ({
+  data,
+  title,
+  height = 320,
+  legend = false,
+  outerRadius = 100,
+  innerRadius = 40,
+}: CategoryChartProps) => {
   const chartData = data.map(item => ({
     name: item.category,
     value: Math.abs(item.amount),
@@ -45,7 +56,7 @@ export const CategoryChart = ({ data, title }: CategoryChartProps) => {
   };
 
   return (
-    <div className="w-full h-80">
+    <div className="w-full" style={{ height }}>
       {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -55,8 +66,8 @@ export const CategoryChart = ({ data, title }: CategoryChartProps) => {
             cy="50%"
             labelLine={false}
             label={renderCustomLabel}
-            outerRadius={100}
-            innerRadius={40}
+            outerRadius={outerRadius}
+            innerRadius={innerRadius}
             fill="#8884d8"
             dataKey="value"
           >
@@ -68,6 +79,13 @@ export const CategoryChart = ({ data, title }: CategoryChartProps) => {
             formatter={(value: number) => [`$${value.toFixed(2)}`, 'Amount']}
             labelFormatter={(label) => `${label}`}
           />
+          {legend && (
+            <Legend
+              layout="horizontal"
+              verticalAlign="bottom"
+              align="center"
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
     </div>

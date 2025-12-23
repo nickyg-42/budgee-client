@@ -114,3 +114,12 @@ export interface RegisterRequest {
   first_name: string;
   last_name: string;
 }
+
+export interface Budget {
+  id: number;
+  user_id: number;
+  amount: number;
+  personal_finance_category: string;
+  created_at?: string;
+  updated_at?: string;
+}

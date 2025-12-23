@@ -7,6 +7,7 @@ import { Accounts } from "./pages/Accounts";
 import { Profile } from "./pages/Profile";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { Budgets } from "./pages/Budgets";
 import { Toaster } from 'sonner';
 
 export default function App() {
@@ -37,6 +38,11 @@ export default function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/budgets" element={
+            <ProtectedRoute>
+              <Budgets />
             </ProtectedRoute>
           } />
           

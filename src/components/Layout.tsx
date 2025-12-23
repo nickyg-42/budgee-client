@@ -7,7 +7,8 @@ import {
   DollarSign, 
   User, 
   LogOut,
-  Bird
+  Bird,
+  PiggyBank
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: CreditCard },
   { name: 'Net Worth & Accounts', href: '/accounts', icon: DollarSign },
+  { name: 'Budgets', href: '/budgets', icon: PiggyBank },
   { name: 'Profile', href: '/profile', icon: User },
 ];
 
