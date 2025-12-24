@@ -116,6 +116,33 @@ export const Dashboard = () => {
     return d.slice(Math.max(0, d.length - 6));
   }, [monthAgg]);
 
+  const yearlyAgg = useMemo(() => {
+    const now = new Date();
+    const buckets = new Map<number, { income: number; expenses: number }>();
+    for (let i = 0; i < 5; i++) {
+      const y = now.getFullYear() - i;
+      buckets.set(y, { income: 0, expenses: 0 });
+    }
+    (transactions || []).forEach((t: any) => {
+      const v: any = t?.date;
+      const dt = typeof v === 'string' ? new Date(v) : new Date(v);
+      if (isNaN(dt.getTime())) return;
+      const y = dt.getFullYear();
+      const bucket = buckets.get(y);
+      if (!bucket) return;
+      const amt = asNumber(t?.amount);
+      if ((t as any)?.expense === true) {
+        bucket.expenses += Math.abs(amt);
+      } else if (amt < 0) {
+        bucket.income += Math.abs(amt);
+      }
+    });
+    const entries = Array.from(buckets.entries()).sort((a,b)=>a[0]-b[0]);
+    return entries.map(([year, { income, expenses }]) => ({ month: String(year), income, expenses }));
+  }, [transactions]);
+
+  const [chartMode, setChartMode] = useState<'months' | 'years'>('months');
+
   const currentMonthStats = useMemo(() => {
     const now = new Date();
     const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -307,10 +334,28 @@ export const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex justify-end mb-4 text-sm text-gray-600">Last 6 months</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {chartMode === 'months' ? 'Last 6 months' : 'Last 5 years'}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  className={`px-3 py-1 rounded-md border text-sm ${chartMode === 'months' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => setChartMode('months')}
+                >
+                  Months
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-md border text-sm ${chartMode === 'years' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => setChartMode('years')}
+                >
+                  Years
+                </button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <IncomeExpenseChart data={sixMonthData} />
+            <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} />
           </CardContent>
         </Card>
       </div>

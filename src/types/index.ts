@@ -123,3 +123,31 @@ export interface Budget {
   created_at?: string;
   updated_at?: string;
 }
+
+export type TransactionRuleField = 'name' | 'merchant_name' | 'amount' | 'account';
+
+export type StringOperator = 'equals' | 'contains' | 'in';
+export type NumberOperator = 'equals' | 'gte' | 'lte' | 'gt' | 'lt';
+
+export interface ConditionLeaf {
+  field: TransactionRuleField;
+  op: StringOperator | NumberOperator;
+  value: string | number | string[];
+}
+
+export interface ConditionGroup {
+  and?: ConditionNode[];
+  or?: ConditionNode[];
+}
+
+export type ConditionNode = ConditionLeaf | ConditionGroup;
+
+export interface TransactionRule {
+  id: number;
+  user_id: number;
+  name: string;
+  conditions: ConditionNode;
+  personal_finance_category: string;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -28,6 +28,17 @@ export const Transactions = () => {
   const [sortKey, setSortKey] = useState<'date' | 'amount' | null>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc' | null>('desc');
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const addTransactionFeatureEnabled = false;
+  const [newAccountId, setNewAccountId] = useState<string>('');
+  const [newCategory, setNewCategory] = useState<string>('');
+  const [newName, setNewName] = useState<string>('');
+  const [newMerchantName, setNewMerchantName] = useState<string>('');
+  const [newDate, setNewDate] = useState<string>('');
+  const [newAmount, setNewAmount] = useState<string>('');
+  const [newDetailedCategory, setNewDetailedCategory] = useState<string>('');
+  const [newPaymentChannel, setNewPaymentChannel] = useState<string>('');
+
   const monthInitRef = useRef(false);
   useEffect(() => {
     if (monthInitRef.current) return;
@@ -336,7 +347,7 @@ export const Transactions = () => {
             />
           </button>
           <button
-            className="text-blue-500 hover:text-blue-700"
+            className="text-red-600 hover:text-red-800"
             onClick={async () => {
               const ok = window.confirm('Delete this transaction? You will not be able to recover it.');
               if (!ok) return;
@@ -422,6 +433,18 @@ export const Transactions = () => {
 
   return (
     <Layout>
+      {addTransactionFeatureEnabled && (
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+          <button
+            className="inline-flex items-center px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            onClick={() => setIsAddOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New
+          </button>
+        </div>
+      )}
       {/* Date Range and Chart */}
       <div className="mb-8">
         <div className="flex items-center justify-center mb-6">
@@ -717,14 +740,20 @@ export const Transactions = () => {
                         {sortable ? (
                           <button
                             onClick={() => handleSortClick(col.id)}
-                            className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
+                            className={
+                              active
+                                ? 'flex items-center space-x-2 text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded'
+                                : 'flex items-center space-x-2 text-gray-700 hover:text-gray-900'
+                            }
                           >
                             <span>{col.label}</span>
-                            {active && (sortDir === 'desc' ? (
-                              <ArrowDownRight className="w-4 h-4" />
-                            ) : (
-                              <ArrowUpRight className="w-4 h-4" />
-                            ))}
+                            {sortable && !active && <ArrowUpRight className="w-3 h-3 text-gray-300" />}
+                            {active &&
+                              (sortDir === 'desc' ? (
+                                <ArrowDownRight className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <ArrowUpRight className="w-4 h-4 text-blue-600" />
+                              ))}
                           </button>
                         ) : (
                           col.label
@@ -770,6 +799,158 @@ export const Transactions = () => {
           </div>
         </CardContent>
       </Card>
+      {addTransactionFeatureEnabled && (
+      <Modal
+        open={isAddOpen}
+        title="Add Transaction"
+        onClose={() => setIsAddOpen(false)}
+        actions={(
+          <>
+            <button
+              onClick={() => setIsAddOpen(false)}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  if (!newAccountId || !newCategory || !newName.trim() || !newDate || newAmount === '') {
+                    toast.error('Please fill in Account, Category, Name, Date, and Amount');
+                    return;
+                  }
+                  const amtNum = Number(newAmount);
+                  if (!Number.isFinite(amtNum)) {
+                    toast.error('Amount must be a valid number');
+                    return;
+                  }
+                  const isExpense = amtNum < 0;
+                  const normalizedAmount = isExpense ? Math.abs(amtNum) : -Math.abs(amtNum);
+                  const payload: any = {
+                    account_id: newAccountId,
+                    amount: normalizedAmount,
+                    date: newDate,
+                    name: newName,
+                    merchant_name: newMerchantName,
+                    primary_category: newCategory,
+                    detailed_category: newDetailedCategory || undefined,
+                    payment_channel: newPaymentChannel || undefined,
+                    expense: isExpense
+                  };
+                  const created = await apiService.createTransaction(payload);
+                  setTransactions([...(transactions || []), created] as any);
+                  toast.success('Transaction created');
+                  setIsAddOpen(false);
+                  setNewAccountId('');
+                  setNewCategory('');
+                  setNewName('');
+                  setNewMerchantName('');
+                  setNewDate('');
+                  setNewAmount('');
+                  setNewDetailedCategory('');
+                  setNewPaymentChannel('');
+                } catch (e) {
+                  toast.error('Failed to create transaction');
+                }
+              }}
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Save
+            </button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+            <select
+              value={newAccountId}
+              onChange={(e) => setNewAccountId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select an account</option>
+              {(accounts || []).map(acc => (
+                <option key={acc.id} value={String(acc.id)}>{acc.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Category</label>
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select a category</option>
+              {PERSONAL_FINANCE_CATEGORIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Merchant Name</label>
+            <input
+              type="text"
+              value={newMerchantName}
+              onChange={(e) => setNewMerchantName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-600">Enter a negative value for expenses.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Detailed Category (optional)</label>
+            <input
+              type="text"
+              value={newDetailedCategory}
+              onChange={(e) => setNewDetailedCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Channel (optional)</label>
+            <input
+              type="text"
+              value={newPaymentChannel}
+              onChange={(e) => setNewPaymentChannel(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </Modal>
+      )}
       <Modal
         open={isEditOpen}
         title="Edit Transaction"

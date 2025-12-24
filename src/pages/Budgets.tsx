@@ -234,13 +234,13 @@ export const Budgets = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <span className="text-base font-semibold text-gray-800">Monthly Budgets</span>
+              <span className="text-sm font-semibold text-gray-800">Monthly Budgets</span>
               <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
+              <span className="text-xs text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
                 >
                   {monthOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -267,8 +267,8 @@ export const Budgets = () => {
                   <div key={b.id} className="border border-gray-200 rounded-md p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="text-base font-semibold text-gray-900">{b.personal_finance_category}</div>
-                          <div className="text-sm text-gray-700">
+                          <div className="text-sm font-semibold text-gray-900">{b.personal_finance_category}</div>
+                          <div className="text-xs text-gray-700">
                             <span>Allotted:</span> <span className="font-bold">{formatCurrency(amt)}</span> •{' '}
                             <span>Spent:</span> <span className="font-bold">{formatCurrency(spent)}</span> •{' '}
                             {amt - spent >= 0 ? (
@@ -291,7 +291,7 @@ export const Budgets = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="relative h-6 bg-gray-100 rounded-md mb-3">
+                      <div className="relative h-5 bg-gray-100 rounded-md mb-2">
                         <div className={`h-full ${color} rounded-sm`} style={{ width: `${fillPct}%` }}></div>
                     </div>
                   </div>
@@ -306,26 +306,23 @@ export const Budgets = () => {
             <div className="flex justify-end mb-4 text-sm text-gray-600">Monthly Spending Breakdown</div>
           </CardHeader>
           <CardContent>
-            <div className="flex">
-              <div className="w-1/2 pr-4">
+            <div className="flex flex-col items-center">
+              <div className="w-full">
+                <CategoryChart data={categoryChartData} height={420} outerRadius={150} innerRadius={60} />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3 justify-center">
                 {(() => {
                   const entries = Array.from(currentMonthSpentByCategory.entries()).sort((a,b)=>b[1]-a[1]);
                   if (entries.length === 0) {
-                    return <div className="py-4 text-sm text-gray-600">No expenses for this month</div>;
+                    return <div className="py-2 text-xs text-gray-600">No categories to display</div>;
                   }
-                  return entries.map(([cat, amt], index) => (
-                    <div key={index} className="py-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="font-medium text-gray-900">{cat}</span>
-                        <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
-                      </div>
-                      <div className="mt-1 h-3 w-full rounded" style={{ backgroundColor: getCategoryColor(cat) }}></div>
+                  return entries.map(([cat]) => (
+                    <div key={cat} className="flex items-center space-x-2 text-xs text-gray-700">
+                      <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: getCategoryColor(cat) }} />
+                      <span>{cat}</span>
                     </div>
                   ));
                 })()}
-              </div>
-              <div className="w-1/2">
-                <CategoryChart data={categoryChartData} />
               </div>
             </div>
           </CardContent>

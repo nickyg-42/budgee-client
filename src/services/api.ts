@@ -1,4 +1,4 @@
-import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest, Budget } from '../types';
+import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest, Budget, TransactionRule } from '../types';
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -184,6 +184,13 @@ class ApiService {
     });
   }
 
+  async createTransaction(data: { account_id: string | number; amount: number; date: string; name: string; merchant_name?: string; primary_category: string; detailed_category?: string; payment_channel?: string; expense: boolean }): Promise<Transaction> {
+    return this.fetchWithErrorHandling('/plaid/transactions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Dashboard Data
   async getDashboardStats(): Promise<DashboardStats> {
     try {
@@ -287,6 +294,41 @@ class ApiService {
   async deleteBudget(id: number): Promise<{ success: boolean }> {
     return this.fetchWithErrorHandling(`/budgets/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Transaction Rules
+  async getTransactionRules(): Promise<TransactionRule[]> {
+    return this.fetchWithErrorHandling('/transaction-rules');
+  }
+
+  async getTransactionRule(id: number): Promise<TransactionRule> {
+    return this.fetchWithErrorHandling(`/transaction-rules/${id}`);
+  }
+
+  async createTransactionRule(payload: { name: string; conditions: any; personal_finance_category: string }): Promise<TransactionRule> {
+    return this.fetchWithErrorHandling('/transaction-rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateTransactionRule(id: number, payload: { name?: string; conditions?: any; personal_finance_category?: string }): Promise<TransactionRule> {
+    return this.fetchWithErrorHandling(`/transaction-rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteTransactionRule(id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/transaction-rules/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async triggerTransactionRules(): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling('/transaction-rules/trigger', {
+      method: 'POST',
     });
   }
 }
