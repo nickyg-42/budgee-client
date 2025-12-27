@@ -6,13 +6,16 @@ import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor } from '../utils/formatters';
+import { getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { PiggyBank, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../theme/ThemeContext';
 
 export const Dashboard = () => {
   const { transactions, accounts, setTransactions, setAccounts, plaidItems, setPlaidItems, setLoading, setError } = useAppStore();
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const initRef = useRef(false);
+  const { semantic } = useTheme();
 
   useEffect(() => {
     if (initRef.current) return;
@@ -104,7 +107,8 @@ export const Dashboard = () => {
       const amt = asNumber(t?.amount);
       if ((t as any).expense === true) {
         b.expenses += Math.abs(amt);
-      } else if (amt < 0) {
+      }
+      if ((t as any).income === true) {
         b.income += Math.abs(amt);
       }
     });
@@ -133,7 +137,8 @@ export const Dashboard = () => {
       const amt = asNumber(t?.amount);
       if ((t as any)?.expense === true) {
         bucket.expenses += Math.abs(amt);
-      } else if (amt < 0) {
+      }
+      if ((t as any)?.income === true) {
         bucket.income += Math.abs(amt);
       }
     });
@@ -179,7 +184,7 @@ export const Dashboard = () => {
                   <PiggyBank className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Savings Rate</span>
                 </div>
-                <div className={`text-3xl font-bold ${currentMonthStats.savings >= 0 ? 'text-green-500' : 'text-red-500'} mb-1`}>
+                <div className="text-3xl font-bold mb-1" style={{ color: currentMonthStats.savings >= 0 ? semantic.good : semantic.bad }}>
                   {formatPercentage(currentMonthStats.savings_rate)}
                 </div>
                 <p className="text-sm text-gray-600">
@@ -202,14 +207,14 @@ export const Dashboard = () => {
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Expenses</span>
                 </div>
-                <div className="text-3xl font-bold text-red-500 mb-1">
+                <div className="text-3xl font-bold mb-1" style={{ color: semantic.bad }}>
                   {formatCurrency(currentMonthStats.expenses)}
                 </div>
-                <div className={`flex items-center text-sm ${expenseChangeValue > 0 ? 'text-red-500' : 'text-green-500'} mb-1`}>
+                <div className="flex items-center text-sm mb-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }}>
                   {expenseChangeValue > 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <TrendingUp className="w-4 h-4 mr-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }} />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
+                    <TrendingDown className="w-4 h-4 mr-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }} />
                   )}
                   {expenseChange}
                 </div>
@@ -229,14 +234,14 @@ export const Dashboard = () => {
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Income</span>
                 </div>
-                <div className="text-3xl font-bold text-green-500 mb-1">
+                <div className="text-3xl font-bold mb-1" style={{ color: semantic.good }}>
                   {formatCurrency(currentMonthStats.income)}
                 </div>
-                <div className={`flex items-center text-sm ${incomeChangeValue >= 0 ? 'text-green-500' : 'text-red-500'} mb-1`}>
+                <div className="flex items-center text-sm mb-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }}>
                   {incomeChangeValue >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <TrendingUp className="w-4 h-4 mr-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }} />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
+                    <TrendingDown className="w-4 h-4 mr-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }} />
                   )}
                   {incomeChange}
                 </div>
@@ -267,68 +272,29 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex">
-               <div className="w-1/2 pr-4">
-                {(() => {
-                  const ym = selectedMonth;
-                  const d = (transactions || []).filter((t: any) => {
-                    const v: any = t?.date;
-                    const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
-                    return txm === ym;
-                  });
-                  const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
-                  if (!hasExpenses) {
-                    return (
-                      <div className="py-4 text-sm text-gray-600">No expenses for this month</div>
-                    );
-                  }
-                  const grouped = new Map<string, number>();
-                  d.forEach((t: any) => {
-                    const amt = asNumber(t?.amount);
-                    if ((t as any)?.expense === true) {
-                      const cat = safePrimaryCategory(t);
-                      const prev = grouped.get(cat) || 0;
-                      grouped.set(cat, prev + Math.abs(amt));
-                    }
-                  });
-                  const entries = Array.from(grouped.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                  return entries.map(([cat, amt], index) => (
-                    <div key={index} className="py-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="font-medium text-gray-900">{cat}</span>
-                        <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
-                      </div>
-                      <div className="mt-1 h-3 w-full rounded" style={{ backgroundColor: getCategoryColor(cat) }}></div>
-                    </div>
-                  ));
-                })()}
-              </div>
-              <div className="w-1/2">
-                {(() => {
-                  const ym = selectedMonth;
-                  const d = (transactions || []).filter((t: any) => {
-                    const v: any = t?.date;
-                    const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
-                    return txm === ym;
-                  });
-                  const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
-                  if (!hasExpenses) {
-                    return <CategoryChart data={[{ category: 'DEFAULT', amount: -1, percentage: 0 }]} />;
-                  }
-                  const grouped = new Map<string, number>();
-                  d.forEach((t: any) => {
-                    const amt = asNumber(t?.amount);
-                    if ((t as any)?.expense === true) {
-                      const cat = safePrimaryCategory(t);
-                      const prev = grouped.get(cat) || 0;
-                      grouped.set(cat, prev + Math.abs(amt));
-                    }
-                  });
-                  const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));
-                  return <CategoryChart data={data} />;
-                })()}
-              </div>
-            </div>
+            {(() => {
+              const ym = selectedMonth;
+              const d = (transactions || []).filter((t: any) => {
+                const v: any = t?.date;
+                const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
+                return txm === ym;
+              });
+              const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
+              if (!hasExpenses) {
+                return <CategoryChart data={[{ category: 'DEFAULT', amount: -0, percentage: 0 }]} height={520} outerRadius={130} innerRadius={70} transactionsForMonth={d as any} selectedMonth={ym} />;
+              }
+              const grouped = new Map<string, number>();
+              d.forEach((t: any) => {
+                const amt = asNumber(t?.amount);
+                if ((t as any)?.expense === true) {
+                  const cat = safePrimaryCategory(t);
+                  const prev = grouped.get(cat) || 0;
+                  grouped.set(cat, prev + Math.abs(amt));
+                }
+              });
+              const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));
+              return <CategoryChart data={data} height={520} outerRadius={130} innerRadius={70} transactionsForMonth={d as any} selectedMonth={ym} />;
+            })()}
           </CardContent>
         </Card>
 
@@ -360,7 +326,7 @@ export const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Bottom Row - Accounts */}
+      {/* Bottom Row - Accounts
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -402,7 +368,7 @@ export const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </Layout>
   );
 };

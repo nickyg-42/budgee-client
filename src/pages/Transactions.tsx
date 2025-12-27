@@ -8,10 +8,12 @@ import { Search, Edit, Trash2, Plus, Minus, Car, Plane, Utensils, Music2, ArrowU
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
-import { PERSONAL_FINANCE_CATEGORIES } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { useTheme } from '../theme/ThemeContext';
 
 export const Transactions = () => {
   const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
+  const { semantic } = useTheme();
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(25);
@@ -125,7 +127,8 @@ export const Transactions = () => {
       const amt = asNumber(t.amount);
       if ((t as any).expense === true) {
         bucket.expenses += Math.abs(amt);
-      } else if (amt < 0) {
+      }
+      if ((t as any).income === true) {
         bucket.income += Math.abs(amt);
       }
     });
@@ -219,13 +222,14 @@ export const Transactions = () => {
     }
     // Amount range
     const amt = asNumber(transaction.amount);
+    const humanAmt = amt > 0 ? -Math.abs(amt) : Math.abs(amt);
     if (transactionFilters.amount_min) {
       const min = Number(transactionFilters.amount_min);
-      if (Number.isFinite(min) && amt < min) return false;
+      if (Number.isFinite(min) && humanAmt < min) return false;
     }
     if (transactionFilters.amount_max) {
       const max = Number(transactionFilters.amount_max);
-      if (Number.isFinite(max) && amt > max) return false;
+      if (Number.isFinite(max) && humanAmt > max) return false;
     }
     return true;
   });
@@ -239,7 +243,8 @@ export const Transactions = () => {
       const amt = asNumber(t?.amount);
       if ((t as any).expense === true) {
         expenses += Math.abs(amt);
-      } else if (amt < 0) {
+      }
+      if ((t as any).income === true) {
         income += Math.abs(amt);
       }
     });
@@ -303,7 +308,7 @@ export const Transactions = () => {
       id: 'amount',
       label: 'Amount',
       render: (transaction: any) => (
-        <span className={`text-sm font-bold ${asNumber(transaction.amount) < 0 ? 'text-green-600' : 'text-red-600'}`}>
+        <span className="text-sm font-bold" style={{ color: asNumber(transaction.amount) < 0 ? semantic.good : semantic.bad }}>
           {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
         </span>
       ),
@@ -318,7 +323,7 @@ export const Transactions = () => {
       label: 'Primary Category',
       render: (transaction: any) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-          {safePrimaryCategory(transaction)}
+          {getCategoryLabelFromConstants(safePrimaryCategory(transaction))}
         </span>
       ),
     },
@@ -483,15 +488,15 @@ export const Transactions = () => {
               <div className="space-y-4">
                 <div>
                   <p className="text-base font-semibold text-gray-700">Cash Flow</p>
-                  <p className={`text-4xl font-extrabold ${summaryTotals.cashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summaryTotals.cashFlow)}</p>
+                  <p className="text-4xl font-extrabold" style={{ color: summaryTotals.cashFlow >= 0 ? semantic.good : semantic.bad }}>{formatCurrency(summaryTotals.cashFlow)}</p>
                 </div>
                 <div>
                   <p className="text-base font-semibold text-gray-700">Income</p>
-                  <p className="text-4xl font-extrabold text-green-500">{formatCurrency(summaryTotals.income)}</p>
+                  <p className="text-4xl font-extrabold" style={{ color: semantic.good }}>{formatCurrency(summaryTotals.income)}</p>
                 </div>
                 <div>
                   <p className="text-base font-semibold text-gray-700">Expenses</p>
-                  <p className="text-4xl font-extrabold text-red-500">{formatCurrency(summaryTotals.expenses)}</p>
+                  <p className="text-4xl font-extrabold" style={{ color: semantic.bad }}>{formatCurrency(summaryTotals.expenses)}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
                   <p className="text-sm text-gray-600">{filteredTransactions.length < totalTransactionsCount ? `From ${filteredTransactions.length} transactions (filtered)` : 'From all transactions'}</p>
@@ -650,8 +655,8 @@ export const Transactions = () => {
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All">All</option>
-                  {PERSONAL_FINANCE_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -884,8 +889,8 @@ export const Transactions = () => {
               required
             >
               <option value="">Select a category</option>
-              {PERSONAL_FINANCE_CATEGORIES.map(c => (
-                <option key={c} value={c}>{c}</option>
+              {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>

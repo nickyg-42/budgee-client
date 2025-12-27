@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./theme/ThemeContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Dashboard } from "./pages/Dashboard";
 import { Transactions } from "./pages/Transactions";
@@ -14,49 +15,51 @@ import { TransactionRules } from "./pages/TransactionRules";
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+      <ThemeProvider>
+        <Router>
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
           {/* Protected Routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/transactions" element={
-            <ProtectedRoute>
-              <Transactions />
-            </ProtectedRoute>
-          } />
-          <Route path="/accounts" element={
-            <ProtectedRoute>
-              <Accounts />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          <Route path="/budgets" element={
-            <ProtectedRoute>
-              <Budgets />
-            </ProtectedRoute>
-          } />
-          <Route path="/transaction-rules" element={
-            <ProtectedRoute>
-              <TransactionRules />
-            </ProtectedRoute>
-          } />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/transactions" element={
+              <ProtectedRoute>
+                <Transactions />
+              </ProtectedRoute>
+            } />
+            <Route path="/accounts" element={
+              <ProtectedRoute>
+                <Accounts />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/budgets" element={
+              <ProtectedRoute>
+                <Budgets />
+              </ProtectedRoute>
+            } />
+            <Route path="/transaction-rules" element={
+              <ProtectedRoute>
+                <TransactionRules />
+              </ProtectedRoute>
+            } />
           
           {/* Redirect unknown routes to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <Toaster position="top-right" />
-      </Router>
+          </Routes>
+          <Toaster position="top-right" />
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

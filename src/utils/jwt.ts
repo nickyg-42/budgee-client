@@ -6,6 +6,7 @@ interface JWTPayload {
   email?: string;
   first_name?: string;
   last_name?: string;
+  theme?: string;
   exp?: number;
   iat?: number;
 }
@@ -33,6 +34,7 @@ export const extractUserFromJWT = (token: string) => {
     email: payload.email || '',
     first_name: payload.first_name || '',
     last_name: payload.last_name || '',
+    theme: payload.theme || '',
     created_at: new Date().toISOString(), // JWT doesn't typically include creation date
   };
 

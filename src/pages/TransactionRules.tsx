@@ -6,7 +6,7 @@ import { apiService } from '../services/api';
 import { toast } from 'sonner';
 import { ConditionsBuilder } from '../components/transactionRules/ConditionsBuilder';
 import type { TransactionRule, ConditionNode, ConditionGroup, ConditionLeaf } from '../types';
-import { PERSONAL_FINANCE_CATEGORIES } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { Plus, Pencil, Trash2, PlayCircle, HelpCircle } from 'lucide-react';
 
 const isGroup = (node: ConditionNode): node is ConditionGroup => {
@@ -134,13 +134,28 @@ export const TransactionRules = () => {
       toast.error(res.errors[0] || 'Invalid rule conditions');
       return;
     }
+    const toBackend = (node: ConditionNode): ConditionNode => {
+      if (isGroup(node)) {
+        const key = node.and ? 'and' : 'or';
+        const children = (node as any)[key] as ConditionNode[];
+        return { [key]: children.map(toBackend) } as ConditionGroup;
+      }
+      if (isLeaf(node) && node.field === 'amount') {
+        const v = typeof node.value === 'number' ? node.value : Number(node.value);
+        const raw = -Number(v || 0);
+        const map: Record<string, string> = { eq: 'eq', gt: 'lt', gte: 'lte', lt: 'gt', lte: 'gte' };
+        const nextOp = map[String(node.op)] || node.op;
+        return { ...node, op: nextOp as any, value: raw };
+      }
+      return node;
+    };
     setSaving(true);
     try {
       if (editing) {
         const updated = await apiService.updateTransactionRule(editing.id, {
           name,
           personal_finance_category: category,
-          conditions,
+          conditions: toBackend(conditions),
         });
         setRules(rules.map(r => (r.id === updated.id ? updated : r)));
         toast.success('Rule updated');
@@ -148,7 +163,7 @@ export const TransactionRules = () => {
         const created = await apiService.createTransactionRule({
           name,
           personal_finance_category: category,
-          conditions,
+          conditions: toBackend(conditions),
         });
         setRules([created, ...rules]);
         toast.success('Rule created');
@@ -251,7 +266,7 @@ export const TransactionRules = () => {
                       {rules.map(rule => (
                         <tr key={rule.id}>
                           <td className="px-4 py-2 text-sm text-gray-900">{rule.name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-700">{rule.personal_finance_category}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">{getCategoryLabelFromConstants(rule.personal_finance_category)}</td>
                           <td className="px-4 py-2 text-sm text-gray-500">{rule.created_at || ''}</td>
                           <td className="px-4 py-2 text-sm">
                             <div className="flex justify-end space-x-2">
@@ -299,8 +314,8 @@ export const TransactionRules = () => {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
-                {PERSONAL_FINANCE_CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>

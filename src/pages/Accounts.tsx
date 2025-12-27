@@ -7,11 +7,13 @@ import { apiService } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { DollarSign, CreditCard, Building, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../theme/ThemeContext';
 
 export const Accounts = () => {
   const { accounts, plaidItems, setAccounts, setPlaidItems } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const { semantic } = useTheme();
   
 
   const initRef = useRef(false);
@@ -261,9 +263,7 @@ export const Accounts = () => {
           <CardContent>
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">Total Net Worth</p>
-              <p className={`text-4xl font-bold ${totalNetWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(totalNetWorth)}
-              </p>
+              <p className="text-4xl font-bold" style={{ color: totalNetWorth >= 0 ? semantic.good : semantic.bad }}>{formatCurrency(totalNetWorth)}</p>
               <p className="text-sm text-gray-500 mt-2">
                 {accounts.length} connected account{accounts.length !== 1 ? 's' : ''}
               </p>

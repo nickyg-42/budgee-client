@@ -8,6 +8,8 @@ import { apiService } from '../services/api';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { useAppStore } from '../stores/appStore';
+import { useTheme } from '../theme/ThemeContext';
+import { createMonochromePalette } from '../theme/monochrome';
 
 export const Profile = () => {
   const { user, logout } = useAuth();
@@ -15,6 +17,7 @@ export const Profile = () => {
   const [profileUser, setProfileUser] = useState(user);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,6 +26,9 @@ export const Profile = () => {
   const [accountCount, setAccountCount] = useState(0);
   const [transactionCount, setTransactionCount] = useState(0);
   const initCountsRef = useRef(false);
+  const { applyTheme, palette, themeId, baseColor } = useTheme();
+  const [monoColor, setMonoColor] = useState('#4b5563');
+  const previewPalette = createMonochromePalette(monoColor);
 
   useEffect(() => {
     let mounted = true;
@@ -32,6 +38,15 @@ export const Profile = () => {
         if (id && id > 0) {
           const u = await apiService.getCurrentUser(id);
           if (mounted) setProfileUser(u);
+          const s = String((u as any)?.theme || '');
+          if (s) {
+            if (s.startsWith('monochrome:')) {
+              const hex = s.split(':')[1] || '';
+              await applyTheme('monochrome', { baseColor: hex });
+            } else if (s === 'earth' || s === 'pastel') {
+              await applyTheme(s as any);
+            }
+          }
         } else {
           if (mounted) setProfileUser(user || null);
         }
@@ -209,6 +224,28 @@ export const Profile = () => {
                 </button>
                 
                 <button
+                  onClick={() => {
+                    if (themeId === 'monochrome' && baseColor) {
+                      setMonoColor(baseColor);
+                    }
+                    setIsThemeOpen(true);
+                  }}
+                  className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <p className="font-medium text-gray-900">Customize Theme</p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const s = String((profileUser as any)?.theme || '');
+                      if (!s || s === 'default') return 'Default';
+                      if (s.startsWith('monochrome:')) return 'Monochrome';
+                      if (s === 'earth') return 'Earth';
+                      if (s === 'pastel') return 'Pastel';
+                      return 'Default';
+                    })()}
+                  </p>
+                </button>
+                
+                <button
                   onClick={async () => {
                     const ok = window.confirm('Are you sure you want to delete your account?');
                     if (!ok) return;
@@ -295,6 +332,111 @@ export const Profile = () => {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+        </div>
+      </div>
+    </Modal>
+    <Modal
+      open={isThemeOpen}
+      title="Customize Theme"
+      onClose={() => setIsThemeOpen(false)}
+      actions={(
+        <>
+          <button
+            onClick={() => setIsThemeOpen(false)}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </>
+      )}
+    >
+      <div className="space-y-6">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Prebuilt Themes</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Default</div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#10b981' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#ef4444' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#f59e0b' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#6b7280' }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('default');
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: 'default' } : prev);
+                  toast.success('Applied Default theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Earth</div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#166534' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#8b1a1a' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#b45309' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#374151' }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('earth');
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: 'earth' } : prev);
+                  toast.success('Applied Earth theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Pastel</div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#86efac' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#fda4af' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#fcd34d' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#9ca3af' }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('pastel');
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: 'pastel' } : prev);
+                  toast.success('Applied Pastel theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Monochrome</div>
+              <div className="mb-3">
+                <input type="color" value={monoColor} onChange={(e) => setMonoColor(e.target.value)} className="w-full h-10 p-0 border border-gray-200 rounded-md" />
+              </div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: monoColor }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: previewPalette.semantic.good }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: previewPalette.semantic.bad }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('monochrome', { baseColor: monoColor });
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: `monochrome:${monoColor}` } : prev);
+                  toast.success('Applied Monochrome theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Modal>

@@ -1,5 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '../../utils/formatters';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface MonthlyData {
   month: string;
@@ -13,6 +14,7 @@ interface IncomeExpenseChartProps {
 }
 
 export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => {
+  const { semantic } = useTheme();
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
     const income = Number(payload.find((p: any) => p?.dataKey === 'income')?.value || 0);
@@ -23,14 +25,14 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
         <div className="text-sm font-semibold text-gray-900">{label}</div>
         <div className="mt-1 space-y-1">
           <div className="text-sm text-gray-700">
-            <span className="inline-block w-3 h-3 mr-2 align-middle" style={{ backgroundColor: '#10b981' }} />
+            <span className="inline-block w-3 h-3 mr-2 align-middle" style={{ backgroundColor: semantic.good }} />
             Income: {formatCurrency(income)}
           </div>
           <div className="text-sm text-gray-700">
-            <span className="inline-block w-3 h-3 mr-2 align-middle" style={{ backgroundColor: '#ef4444' }} />
+            <span className="inline-block w-3 h-3 mr-2 align-middle" style={{ backgroundColor: semantic.bad }} />
             Expenses: {formatCurrency(expenses)}
           </div>
-          <div className={`text-sm font-semibold ${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="text-sm font-semibold" style={{ color: cashFlow >= 0 ? semantic.good : semantic.bad }}>
             Cash Flow: {formatCurrency(cashFlow)}
           </div>
         </div>
@@ -60,13 +62,13 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
           />
           <Bar 
             dataKey="income" 
-            fill="#10b981" 
+            fill={semantic.good} 
             name="Income"
             radius={[2, 2, 0, 0]}
           />
           <Bar 
             dataKey="expenses" 
-            fill="#ef4444" 
+            fill={semantic.bad} 
             name="Expenses"
             radius={[2, 2, 0, 0]}
           />

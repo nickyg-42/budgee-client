@@ -13,6 +13,7 @@ export interface Transaction {
   account_owner?: string;
   transaction_id: string;
   expense: boolean;
+  income: boolean;
 }
 
 export interface Account {
@@ -94,6 +95,7 @@ export interface User {
   created_at: string;
   updated_at?: string;
   password_hash?: string;
+  theme?: string;
 }
 
 export interface AuthResponse {

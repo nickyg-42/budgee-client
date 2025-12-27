@@ -4,19 +4,28 @@ import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { apiService } from '../services/api';
 import { Budget, Transaction } from '../types';
-import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory } from '../constants/personalFinanceCategories';
-import { formatCurrency, getCategoryColor } from '../utils/formatters';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import { Plus, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
 import { CategoryChart } from '../components/charts/CategoryChart';
+import { useTheme } from '../theme/ThemeContext';
 
-const CATEGORIES = PERSONAL_FINANCE_CATEGORIES;
 const isValidCategory = (c: string): c is PersonalFinanceCategory =>
   (PERSONAL_FINANCE_CATEGORIES as readonly string[]).includes(c);
+const EXCLUDED_BUDGET_CATEGORIES: readonly PersonalFinanceCategory[] = [
+  'INCOME',
+  'LOAN_DISBURSEMENTS',
+  'TRANSFER_IN',
+];
+const BUDGET_CATEGORY_OPTIONS = PERSONAL_FINANCE_CATEGORY_OPTIONS.filter(
+  (opt) => !EXCLUDED_BUDGET_CATEGORIES.includes(opt.value)
+);
 
 export const Budgets = () => {
   const { transactions, setTransactions, setAccounts, setPlaidItems } = useAppStore();
+  const { progress } = useTheme();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -27,6 +36,7 @@ export const Budgets = () => {
   const [editCategory, setEditCategory] = useState<string>('');
   const initRef = useRef(false);
   const dataInitRef = useRef(false);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (initRef.current) return;
@@ -139,10 +149,18 @@ export const Budgets = () => {
   }, [currentMonthSpentByCategory]);
 
   const getBarColor = (pct: number) => {
-    if (pct <= 50) return 'bg-green-500';
-    if (pct <= 80) return 'bg-amber-500';
-    if (pct <= 100) return 'bg-orange-500';
-    return 'bg-red-600';
+    if (pct <= 50) return progress.low;
+    if (pct <= 80) return progress.mid;
+    if (pct <= 100) return progress.high;
+    return progress.over;
+  };
+  const expandAll = () => {
+    const map: Record<number, boolean> = {};
+    (budgets || []).forEach(b => { map[Number(b.id)] = true; });
+    setExpanded(map);
+  };
+  const collapseAll = () => {
+    setExpanded({});
   };
 
   const handleAddBudget = async () => {
@@ -246,6 +264,22 @@ export const Budgets = () => {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+                <button
+                  onClick={expandAll}
+                  className="inline-flex items-center px-2 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-xs"
+                  title="Expand all budgets"
+                >
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Expand all
+                </button>
+                <button
+                  onClick={collapseAll}
+                  className="inline-flex items-center px-2 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-xs"
+                  title="Collapse all budgets"
+                >
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Collapse all
+                </button>
               </div>
             </div>
           </CardHeader>
@@ -262,27 +296,43 @@ export const Budgets = () => {
                 const ratio = amt > 0 ? spent / amt : 0;
                 const fillPct = Math.min(100, Math.round(ratio * 100));
                 const over = spent > amt;
-                const color = over ? 'bg-red-600' : getBarColor(fillPct);
+                const color = over ? progress.over : getBarColor(fillPct);
+                const txns = (transactions || []).filter((t: any) => {
+                  const v: any = (t as Transaction).date;
+                  const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
+                  if (txm !== selectedMonth) return false;
+                  if ((t as any).expense !== true) return false;
+                  const cat = String((t as any).primary_category || 'OTHER');
+                  return cat === String(b.personal_finance_category);
+                });
                 return (
                   <div key={b.id} className="border border-gray-200 rounded-md p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">{b.personal_finance_category}</div>
+                          <div className="text-sm font-semibold text-gray-900">{getCategoryLabelFromConstants(String(b.personal_finance_category))}</div>
                           <div className="text-xs text-gray-700">
-                            <span>Allotted:</span> <span className="font-bold">{formatCurrency(amt)}</span> •{' '}
-                            <span>Spent:</span> <span className="font-bold">{formatCurrency(spent)}</span> •{' '}
+                            <span className="font-bold">Allotted:</span> <span>{formatCurrency(amt)}</span> •{' '}
+                            <span className="font-bold">Spent:</span> <span>{formatCurrency(spent)}</span> •{' '}
                             {amt - spent >= 0 ? (
                               <>
-                                <span>Remaining:</span> <span className="font-bold">{formatCurrency(amt - spent)}</span>
+                                <span className="font-bold">Remaining:</span> <span>{formatCurrency(amt - spent)}</span>
                               </>
                             ) : (
                               <>
-                                <span className="text-red-600">Over:</span> <span className="font-bold text-red-600">{formatCurrency(spent - amt)}</span>
+                                <span className="font-bold text-red-600">Over:</span> <span className="text-red-600">{formatCurrency(spent - amt)}</span>
                               </>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          <button
+                            className="text-gray-700 hover:text-gray-900 flex items-center text-xs font-medium"
+                            onClick={() => setExpanded(prev => ({ ...prev, [Number(b.id)]: !prev[Number(b.id)] }))}
+                            title={expanded[Number(b.id)] ? 'Hide expenses' : 'Show expenses'}
+                          >
+                            {expanded[Number(b.id)] ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+                            {expanded[Number(b.id)] ? 'Hide expenses' : `Show expenses (${txns.length})`}
+                          </button>
                           <button className="text-blue-600 hover:text-blue-800" onClick={() => handleStartEdit(b)}>
                             <Edit className="w-4 h-4" />
                           </button>
@@ -292,8 +342,27 @@ export const Budgets = () => {
                         </div>
                       </div>
                       <div className="relative h-5 bg-gray-100 rounded-md mb-2">
-                        <div className={`h-full ${color} rounded-sm`} style={{ width: `${fillPct}%` }}></div>
+                        <div className="h-full rounded-sm" style={{ width: `${fillPct}%`, backgroundColor: color }}></div>
                     </div>
+                    {expanded[Number(b.id)] && (
+                      <div className="mt-3 border-t border-gray-200 pt-3">
+                        {txns.length === 0 ? (
+                          <div className="text-xs text-gray-600">No expenses for this category in {selectedMonth}.</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {txns.map((t: any) => (
+                              <div key={String((t as any).id)} className="flex items-center justify-between text-sm">
+                                <div className="flex-1 pr-3">
+                                  <div className="font-medium text-gray-900">{String((t as any).name || (t as any).merchant_name || 'Unknown')}</div>
+                                  <div className="text-xs text-gray-600">{formatDate(String((t as any).date || ''))}</div>
+                                </div>
+                                <div className="text-right font-semibold text-gray-900">{formatCurrency(Math.abs(asNumber((t as any).amount)))}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -308,20 +377,14 @@ export const Budgets = () => {
           <CardContent>
             <div className="flex flex-col items-center">
               <div className="w-full">
-                <CategoryChart data={categoryChartData} height={420} outerRadius={150} innerRadius={60} />
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3 justify-center">
                 {(() => {
-                  const entries = Array.from(currentMonthSpentByCategory.entries()).sort((a,b)=>b[1]-a[1]);
-                  if (entries.length === 0) {
-                    return <div className="py-2 text-xs text-gray-600">No categories to display</div>;
-                  }
-                  return entries.map(([cat]) => (
-                    <div key={cat} className="flex items-center space-x-2 text-xs text-gray-700">
-                      <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: getCategoryColor(cat) }} />
-                      <span>{cat}</span>
-                    </div>
-                  ));
+                  const ym = selectedMonth;
+                  const monthTxns = (transactions || []).filter((t: any) => {
+                    const v: any = (t as Transaction).date;
+                    const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
+                    return txm === ym;
+                  });
+                  return <CategoryChart data={categoryChartData} height={560} outerRadius={150} innerRadius={70} transactionsForMonth={monthTxns as any} selectedMonth={ym} />;
                 })()}
               </div>
             </div>
@@ -359,8 +422,8 @@ export const Budgets = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select a category</option>
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>{c}</option>
+              {BUDGET_CATEGORY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
@@ -406,8 +469,8 @@ export const Budgets = () => {
               onChange={(e) => setEditCategory(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>{c}</option>
+              {BUDGET_CATEGORY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>

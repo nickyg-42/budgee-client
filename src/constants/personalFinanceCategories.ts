@@ -46,3 +46,35 @@ export const getCategoryColorFromConstants = (category: string): string => {
   const key = String(category || 'OTHER') as PersonalFinanceCategory;
   return PERSONAL_FINANCE_CATEGORY_COLORS[key] ?? PERSONAL_FINANCE_CATEGORY_COLORS.OTHER;
 };
+
+export const PERSONAL_FINANCE_CATEGORY_LABELS: Record<PersonalFinanceCategory, string> = {
+  INCOME: 'Income',
+  LOAN_DISBURSEMENTS: 'Loan Disbursements',
+  LOAN_PAYMENTS: 'Loan Payments',
+  TRANSFER_IN: 'Transfer In',
+  TRANSFER_OUT: 'Transfer Out',
+  BANK_FEES: 'Bank Fees',
+  ENTERTAINMENT: 'Entertainment',
+  FOOD_AND_DRINK: 'Food & Drink',
+  GENERAL_MERCHANDISE: 'General Merchandise',
+  HOME_IMPROVEMENT: 'Home Improvement',
+  MEDICAL: 'Medical',
+  PERSONAL_CARE: 'Personal Care',
+  GENERAL_SERVICES: 'General Services',
+  GOVERNMENT_AND_NON_PROFIT: 'Government & Non-Profit',
+  TRANSPORTATION: 'Transportation',
+  TRAVEL: 'Travel',
+  RENT_AND_UTILITIES: 'Rent & Utilities',
+  OTHER: 'Other',
+};
+
+export const getCategoryLabelFromConstants = (category: string): string => {
+  const key = String(category || 'OTHER') as PersonalFinanceCategory;
+  return PERSONAL_FINANCE_CATEGORY_LABELS[key] ?? PERSONAL_FINANCE_CATEGORY_LABELS.OTHER;
+};
+
+export const PERSONAL_FINANCE_CATEGORY_OPTIONS: { value: PersonalFinanceCategory; label: string }[] =
+  (PERSONAL_FINANCE_CATEGORIES as readonly PersonalFinanceCategory[]).map((c) => ({
+    value: c,
+    label: PERSONAL_FINANCE_CATEGORY_LABELS[c],
+  }));
