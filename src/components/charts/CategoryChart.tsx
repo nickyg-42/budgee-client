@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { CategorySpending } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getCategoryLabelFromConstants } from '../../constants/personalFinanceCategories';
@@ -20,9 +20,9 @@ interface CategoryChartProps {
 export const CategoryChart = ({
   data,
   title,
-  height = 320,
-  outerRadius = 100,
-  innerRadius = 60,
+  height = 380,
+  outerRadius,
+  innerRadius,
   transactionsForMonth = [],
   selectedMonth = '',
 }: CategoryChartProps) => {
@@ -37,6 +37,53 @@ export const CategoryChart = ({
   const [selected, setSelected] = useState<{ name: string; value: number; color: string } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [selectedRaw, setSelectedRaw] = useState<string | null>(null);
+  const [animProgress, setAnimProgress] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      const rect = entries[0]?.contentRect;
+      if (rect) setContainerSize({ w: rect.width, h: rect.height });
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+  const computedOuter = useMemo(() => {
+    const base = Math.min(containerSize.w || 0, containerSize.h || height) / 2 - 50; // this controls chart size
+    return Math.max(90, Math.floor(base));
+  }, [containerSize, height]);
+  const finalOuter = useMemo(() => outerRadius ?? computedOuter ?? 100, [outerRadius, computedOuter]);
+  const finalInner = useMemo(() => innerRadius ?? Math.max(50, Math.floor(finalOuter * 0.42)), [innerRadius, finalOuter]);
+  const startAnimation = (to: number, onDone?: () => void) => {
+    const from = animProgress;
+    const duration = 180;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (to - from) * eased;
+      setAnimProgress(val);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(step);
+      } else {
+        rafRef.current = null;
+        setAnimProgress(to);
+        onDone && onDone();
+      }
+    };
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(step);
+  };
+  const renderActiveShape = (props: any) => {
+    return <Sector {...props} outerRadius={(props.outerRadius || 0) + Math.round(8 * animProgress)} innerRadius={props.innerRadius} cornerRadius={6} />;
+  };
   const legendData = useMemo(() => {
     return [...chartData].sort((a, b) => Number(b.value) - Number(a.value));
   }, [chartData]);
@@ -59,7 +106,7 @@ export const CategoryChart = ({
   return (
     <div className="w-full">
       {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
-      <div className="w-full relative pb-6" style={{ height }}>
+      <div ref={containerRef} className="w-full relative pb-6" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -68,10 +115,12 @@ export const CategoryChart = ({
               cy="50%"
               labelLine={false}
               label={false}
-              outerRadius={outerRadius}
-              innerRadius={innerRadius}
+              outerRadius={finalOuter}
+              innerRadius={finalInner}
               fill="#8884d8"
+              stroke="none"
               dataKey="value"
+              activeShape={renderActiveShape}
               activeIndex={selectedIndex === null ? undefined : selectedIndex}
             >
               {chartData.map((entry, index) => (
@@ -81,19 +130,21 @@ export const CategoryChart = ({
                   cursor="pointer"
                   onClick={() => {
                     if (selectedIndex === index) {
-                      setSelected(null);
-                      setSelectedIndex(null);
-                      setSelectedRaw(null);
-                      setPage(1);
+                      startAnimation(0, () => {
+                        setSelected(null);
+                        setSelectedIndex(null);
+                        setSelectedRaw(null);
+                        setPage(1);
+                      });
                     } else {
                       setSelected({ name: entry.name, value: Number(entry.value) || 0, color: entry.color });
                       setSelectedIndex(index);
                       setSelectedRaw(entry.rawName);
                       setPage(1);
+                      setAnimProgress(0);
+                      startAnimation(1);
                     }
                   }}
-                  stroke={selectedIndex === index ? '#1f2937' : undefined}
-                  strokeWidth={selectedIndex === index ? 2 : 0}
                   opacity={selectedIndex === null ? 1 : (selectedIndex === index ? 1 : 0.6)}
                 />
               ))}
@@ -119,15 +170,19 @@ export const CategoryChart = ({
             onClick={() => {
               const idx = chartData.findIndex(c => c.rawName === entry.rawName);
               if (selectedIndex === idx) {
-                setSelected(null);
-                setSelectedIndex(null);
-                setSelectedRaw(null);
-                setPage(1);
+                startAnimation(0, () => {
+                  setSelected(null);
+                  setSelectedIndex(null);
+                  setSelectedRaw(null);
+                  setPage(1);
+                });
               } else {
                 setSelected({ name: entry.name, value: Number(entry.value) || 0, color: entry.color });
                 setSelectedIndex(idx >= 0 ? idx : null);
                 setSelectedRaw(entry.rawName);
                 setPage(1);
+                setAnimProgress(0);
+                startAnimation(1);
               }
             }}
           >

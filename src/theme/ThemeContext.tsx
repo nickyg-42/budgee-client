@@ -26,7 +26,7 @@ const parsePersisted = (s: Persisted): { id: ThemeId; baseColor?: string | null 
     const hex = s.split(':')[1] || '';
     return { id: 'monochrome', baseColor: hex || null };
   }
-  if (s === 'default' || s === 'earth' || s === 'pastel') return { id: s as any, baseColor: null };
+  if (s === 'default' || s === 'earth' || s === 'pastel' || s === 'slate' || s === 'aurora') return { id: s as any, baseColor: null };
   return { id: 'default', baseColor: null };
 };
 

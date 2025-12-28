@@ -281,7 +281,7 @@ export const Dashboard = () => {
               });
               const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
               if (!hasExpenses) {
-                return <CategoryChart data={[{ category: 'DEFAULT', amount: -0, percentage: 0 }]} height={520} outerRadius={130} innerRadius={70} transactionsForMonth={d as any} selectedMonth={ym} />;
+                return <CategoryChart data={[{ category: 'DEFAULT', amount: -0, percentage: 0 }]} height={520} transactionsForMonth={d as any} selectedMonth={ym} />;
               }
               const grouped = new Map<string, number>();
               d.forEach((t: any) => {
@@ -293,7 +293,7 @@ export const Dashboard = () => {
                 }
               });
               const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));
-              return <CategoryChart data={data} height={520} outerRadius={130} innerRadius={70} transactionsForMonth={d as any} selectedMonth={ym} />;
+              return <CategoryChart data={data} height={520} transactionsForMonth={d as any} selectedMonth={ym} />;
             })()}
           </CardContent>
         </Card>

@@ -339,6 +339,7 @@ export const Profile = () => {
       open={isThemeOpen}
       title="Customize Theme"
       onClose={() => setIsThemeOpen(false)}
+      size="xl"
       actions={(
         <>
           <button
@@ -353,7 +354,7 @@ export const Profile = () => {
       <div className="space-y-6">
         <div>
           <h4 className="text-sm font-semibold text-gray-900 mb-2">Prebuilt Themes</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
             <div className="border border-gray-200 rounded-md p-3">
               <div className="text-sm font-medium mb-2">Default</div>
               <div className="flex items-center space-x-2 mb-3">
@@ -407,6 +408,46 @@ export const Profile = () => {
                   await applyTheme('pastel');
                   setProfileUser((prev: any) => prev ? { ...prev, theme: 'pastel' } : prev);
                   toast.success('Applied Pastel theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Slate</div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#3f8f7a' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#c94a4a' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#c08a2e' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#64748b' }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('slate');
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: 'slate' } : prev);
+                  toast.success('Applied Slate theme');
+                  setIsThemeOpen(false);
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"
+              >
+                Apply
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3">
+              <div className="text-sm font-medium mb-2">Aurora</div>
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#4db6ac' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#e57373' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#f2c94c' }} />
+                <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: '#8b95a1' }} />
+              </div>
+              <button
+                onClick={async () => {
+                  await applyTheme('aurora');
+                  setProfileUser((prev: any) => prev ? { ...prev, theme: 'aurora' } : prev);
+                  toast.success('Applied Aurora theme');
                   setIsThemeOpen(false);
                 }}
                 className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 w-full"

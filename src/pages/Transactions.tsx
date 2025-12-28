@@ -10,6 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { useTheme } from '../theme/ThemeContext';
+import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
 
 export const Transactions = () => {
   const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
@@ -101,34 +102,44 @@ export const Transactions = () => {
     const n = typeof v === 'number' ? v : v === undefined || v === null ? 0 : Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+  const isExpenseFlag = (t: any) => {
+    const v = (t as any)?.expense;
+    return v === true || v === 't' || v === 'true' || v === 1 || v === '1';
+  };
+  const isIncomeFlag = (t: any) => {
+    const v = (t as any)?.income;
+    return v === true || v === 't' || v === 'true' || v === 1 || v === '1';
+  };
+  const ymFromVal = (v: any) => {
+    const d = typeof v === 'string' ? new Date(v) : new Date(v);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  };
 
   const monthlyChartData = useMemo(() => {
     const now = new Date();
     const buckets = new Map<string, { income: number; expenses: number; label: string }>();
     for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
       const key = `${y}-${m}`;
-      const label = `${d.toLocaleString(undefined, { month: 'short' })} ${y}`;
+      const label = `${d.toLocaleString(undefined, { month: 'short', timeZone: 'UTC' })} ${y}`;
       buckets.set(key, { income: 0, expenses: 0, label });
     }
 
     (transactions || []).forEach((t: any) => {
       if (!t || typeof t !== 'object') return;
-      const d: any = t.date;
-      const dt = typeof d === 'string' ? new Date(d) : new Date(d);
-      if (isNaN(dt.getTime())) return;
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth() + 1).padStart(2, '0');
-      const key = `${y}-${m}`;
+      const key = ymFromVal((t as any)?.date);
       const bucket = buckets.get(key);
       if (!bucket) return;
       const amt = asNumber(t.amount);
-      if ((t as any).expense === true) {
+      if (isExpenseFlag(t)) {
         bucket.expenses += Math.abs(amt);
       }
-      if ((t as any).income === true) {
+      if (isIncomeFlag(t)) {
         bucket.income += Math.abs(amt);
       }
     });
@@ -216,8 +227,7 @@ export const Transactions = () => {
     // Month filter
     if (transactionFilters.date_from) {
       const selectedMonth = transactionFilters.date_from.slice(0, 7);
-      const d: any = (transaction as any).date;
-      const txMonth = typeof d === 'string' ? d.slice(0, 7) : new Date(d).toISOString().slice(0, 7);
+      const txMonth = ymFromVal((transaction as any)?.date);
       if (txMonth !== selectedMonth) return false;
     }
     // Amount range
@@ -241,19 +251,15 @@ export const Transactions = () => {
     let expenses = 0;
     (filteredTransactions || []).forEach((t: any) => {
       const amt = asNumber(t?.amount);
-      if ((t as any).expense === true) {
+      if (isExpenseFlag(t)) {
         expenses += Math.abs(amt);
       }
-      if ((t as any).income === true) {
+      if (isIncomeFlag(t)) {
         income += Math.abs(amt);
       }
     });
     return { income, expenses, cashFlow: income - expenses };
   }, [filteredTransactions]);
-
-  // Removed mass select functionality
-
-  // Removed individual row selection functionality
 
   const getAccountName = (accountId: string | number) => {
     const idStr = String(accountId);
@@ -281,12 +287,7 @@ export const Transactions = () => {
       label: 'Icon',
       render: (transaction: any) => (
         <div className="w-12 h-12 flex items-center justify-center">
-          <img
-            src={(transaction as any).personal_finance_category_icon_url}
-            alt="category"
-            className="w-full h-full object-contain"
-            loading="lazy"
-          />
+          <PersonalFinanceIcon category={safePrimaryCategory(transaction)} size={28} />
         </div>
       ),
     },

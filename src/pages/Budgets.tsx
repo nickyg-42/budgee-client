@@ -11,6 +11,7 @@ import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
 import { CategoryChart } from '../components/charts/CategoryChart';
 import { useTheme } from '../theme/ThemeContext';
+import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
 
 const isValidCategory = (c: string): c is PersonalFinanceCategory =>
   (PERSONAL_FINANCE_CATEGORIES as readonly string[]).includes(c);
@@ -307,32 +308,27 @@ export const Budgets = () => {
                 });
                 return (
                   <div key={b.id} className="border border-gray-200 rounded-md p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">{getCategoryLabelFromConstants(String(b.personal_finance_category))}</div>
-                          <div className="text-xs text-gray-700">
-                            <span className="font-bold">Allotted:</span> <span>{formatCurrency(amt)}</span> •{' '}
-                            <span className="font-bold">Spent:</span> <span>{formatCurrency(spent)}</span> •{' '}
-                            {amt - spent >= 0 ? (
-                              <>
-                                <span className="font-bold">Remaining:</span> <span>{formatCurrency(amt - spent)}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="font-bold text-red-600">Over:</span> <span className="text-red-600">{formatCurrency(spent - amt)}</span>
-                              </>
-                            )}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex">
+                          <PersonalFinanceIcon category={String(b.personal_finance_category)} size={20} className="mr-3 mt-0.5" />
+                          <div className="flex flex-col">
+                            <div className="text-sm font-semibold text-gray-900">{getCategoryLabelFromConstants(String(b.personal_finance_category))}</div>
+                            <div className="text-xs text-gray-700">
+                              <span className="font-bold">Allotted:</span> <span>{formatCurrency(amt)}</span> •{' '}
+                              <span className="font-bold">Spent:</span> <span>{formatCurrency(spent)}</span> •{' '}
+                              {amt - spent >= 0 ? (
+                                <>
+                                  <span className="font-bold">Remaining:</span> <span>{formatCurrency(amt - spent)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="font-bold text-red-600">Over:</span> <span className="text-red-600">{formatCurrency(spent - amt)}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button
-                            className="text-gray-700 hover:text-gray-900 flex items-center text-xs font-medium"
-                            onClick={() => setExpanded(prev => ({ ...prev, [Number(b.id)]: !prev[Number(b.id)] }))}
-                            title={expanded[Number(b.id)] ? 'Hide expenses' : 'Show expenses'}
-                          >
-                            {expanded[Number(b.id)] ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
-                            {expanded[Number(b.id)] ? 'Hide expenses' : `Show expenses (${txns.length})`}
-                          </button>
                           <button className="text-blue-600 hover:text-blue-800" onClick={() => handleStartEdit(b)}>
                             <Edit className="w-4 h-4" />
                           </button>
@@ -341,9 +337,19 @@ export const Budgets = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="relative h-5 bg-gray-100 rounded-md mb-2">
-                        <div className="h-full rounded-sm" style={{ width: `${fillPct}%`, backgroundColor: color }}></div>
-                    </div>
+                      <div className="relative h-5 bg-gray-100 rounded-lg mb-2">
+                        <div className="h-full rounded-lg" style={{ width: `${fillPct}%`, backgroundColor: color }}></div>
+                      </div>
+                      <div className="mt-1">
+                        <button
+                          className="text-gray-700 hover:text-gray-900 flex items-center text-xs font-medium"
+                          onClick={() => setExpanded(prev => ({ ...prev, [Number(b.id)]: !prev[Number(b.id)] }))}
+                          title={expanded[Number(b.id)] ? 'Hide expenses' : 'Show expenses'}
+                        >
+                          {expanded[Number(b.id)] ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+                          {expanded[Number(b.id)] ? 'Hide expenses' : `Show expenses (${txns.length})`}
+                        </button>
+                      </div>
                     {expanded[Number(b.id)] && (
                       <div className="mt-3 border-t border-gray-200 pt-3">
                         {txns.length === 0 ? (
@@ -384,7 +390,7 @@ export const Budgets = () => {
                     const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
                     return txm === ym;
                   });
-                  return <CategoryChart data={categoryChartData} height={560} outerRadius={150} innerRadius={70} transactionsForMonth={monthTxns as any} selectedMonth={ym} />;
+                  return <CategoryChart data={categoryChartData} height={560} transactionsForMonth={monthTxns as any} selectedMonth={ym} />;
                 })()}
               </div>
             </div>
