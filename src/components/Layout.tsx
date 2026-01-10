@@ -28,6 +28,10 @@ const navigation = [
 export const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const navItems = (user && user.super_admin) ? [
+    ...navigation,
+    { name: 'Admin', href: '/admin', icon: Settings },
+  ] : navigation;
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -43,7 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
         </div>
         
         <nav className="mt-6">
-          {navigation.map((item) => {
+          {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <Link

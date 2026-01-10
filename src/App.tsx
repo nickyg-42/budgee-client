@@ -11,6 +11,8 @@ import { Register } from "./pages/Register";
 import { Budgets } from "./pages/Budgets";
 import { Toaster } from 'sonner';
 import { TransactionRules } from "./pages/TransactionRules";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { SuperAdminRoute } from "./components/SuperAdminRoute";
 
 export default function App() {
   return (
@@ -52,6 +54,11 @@ export default function App() {
               <ProtectedRoute>
                 <TransactionRules />
               </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <SuperAdminRoute>
+                <AdminDashboard />
+              </SuperAdminRoute>
             } />
           
           {/* Redirect unknown routes to dashboard */}

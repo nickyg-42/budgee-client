@@ -5,7 +5,7 @@ import { Modal } from '../components/ui/Modal';
 import { apiService } from '../services/api';
 import { Budget, Transaction } from '../types';
 import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, monthLabel } from '../utils/formatters';
 import { Plus, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
@@ -107,7 +107,7 @@ export const Budgets = () => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const value = `${y}-${m}`;
-      const label = `${d.toLocaleString(undefined, { month: 'long' })} ${y}`;
+      const label = monthLabel(`${value}-01`);
       options.push({ value, label });
     }
     return options;
@@ -131,7 +131,7 @@ export const Budgets = () => {
     const ym = selectedMonth;
     (transactions || []).forEach((t: any) => {
       const v: any = (t as Transaction).date;
-      const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
+      const txm = String(v || '').slice(0, 7);
       if (txm !== ym) return;
       if ((t as any).expense !== true) return;
       const cat = String((t as any).primary_category || 'OTHER');
@@ -300,7 +300,7 @@ export const Budgets = () => {
                 const color = over ? progress.over : getBarColor(fillPct);
                 const txns = (transactions || []).filter((t: any) => {
                   const v: any = (t as Transaction).date;
-                  const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
+                  const txm = String(v || '').slice(0, 7);
                   if (txm !== selectedMonth) return false;
                   if ((t as any).expense !== true) return false;
                   const cat = String((t as any).primary_category || 'OTHER');
@@ -387,7 +387,7 @@ export const Budgets = () => {
                   const ym = selectedMonth;
                   const monthTxns = (transactions || []).filter((t: any) => {
                     const v: any = (t as Transaction).date;
-                    const txm = typeof v === 'string' ? v.slice(0, 7) : new Date(v).toISOString().slice(0, 7);
+                    const txm = String(v || '').slice(0, 7);
                     return txm === ym;
                   });
                   return <CategoryChart data={categoryChartData} height={560} transactionsForMonth={monthTxns as any} selectedMonth={ym} />;

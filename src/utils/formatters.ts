@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, isValid } from 'date-fns';
 import { Transaction } from '../types';
 
 export const formatCurrency = (amount: number): string => {
@@ -18,10 +18,20 @@ export const formatPercentage = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
 
+export const parseYMD = (dateString: string): Date | null => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const date = new Date(y, mo - 1, d);
+  return isValid(date) ? date : null;
+};
+
 export const formatDate = (dateString: string): string => {
   try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return dateString;
+    const date = parseYMD(dateString);
+    if (!date) return dateString;
     return format(date, 'MMM dd, yyyy');
   } catch {
     return dateString;
@@ -30,8 +40,8 @@ export const formatDate = (dateString: string): string => {
 
 export const formatShortDate = (dateString: string): string => {
   try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return dateString;
+    const date = parseYMD(dateString);
+    if (!date) return dateString;
     return format(date, 'MMM yyyy');
   } catch {
     return dateString;
@@ -40,12 +50,30 @@ export const formatShortDate = (dateString: string): string => {
 
 export const getRelativeTime = (dateString: string): string => {
   try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return dateString;
+    const date = parseYMD(dateString);
+    if (!date) return dateString;
     return formatDistanceToNow(date, { addSuffix: true });
   } catch {
     return dateString;
   }
+};
+
+export const monthKey = (dateString: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!m) return dateString;
+  return `${m[1]}-${m[2]}`;
+};
+
+export const monthLabel = (dateString: string): string => {
+  const date = parseYMD(dateString);
+  if (!date) return dateString;
+  return format(date, 'MMM yyyy');
+};
+
+export const formatYMD = (dateString: string): string => {
+  const date = parseYMD(dateString);
+  if (!date) return dateString.slice(0, 10);
+  return format(date, 'yyyy-MM-dd');
 };
 
 export const calculatePercentageChange = (current: number, previous: number): number => {

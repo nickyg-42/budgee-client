@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { CategorySpending } from '../../types';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency, formatYMD } from '../../utils/formatters';
 import { getCategoryLabelFromConstants } from '../../constants/personalFinanceCategories';
 import { useTheme } from '../../theme/ThemeContext';
 import { Transaction } from '../../types';
@@ -153,12 +153,8 @@ export const CategoryChart = ({
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center">
-            <span
-              className="mx-auto mb-1 block w-5 h-5 rounded-full border border-gray-200"
-              style={{ backgroundColor: selected?.color || 'transparent' }}
-            />
-            <div className="text-xs text-gray-500">{selected ? selected.name : 'Total spent'}</div>
-            <div className="text-lg font-semibold text-gray-900">{formatCurrency(selected ? selected.value : totalSpent)}</div>
+            <div className="text-sm text-gray-500">{selected ? selected.name : 'Total spent'}</div>
+            <div className="text-xl font-semibold text-gray-900">{formatCurrency(selected ? selected.value : totalSpent)}</div>
           </div>
         </div>
       </div>
@@ -187,7 +183,7 @@ export const CategoryChart = ({
             }}
           >
             <span
-              className={`inline-block w-3 h-3 rounded-sm ${selected?.name === entry.name ? 'ring-2 ring-gray-300' : ''}`}
+              className={`inline-block w-3 h-3 rounded-full ${selected?.name === entry.name ? 'ring-2 ring-gray-300' : ''}`}
               style={{ backgroundColor: entry.color }}
             />
             <span>{entry.name}</span>
@@ -220,7 +216,7 @@ export const CategoryChart = ({
                       <td className="px-3 py-2">
                         <div className="text-sm font-medium text-gray-900">{String((t as any).name || (t as any).merchant_name || 'Unknown')}</div>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-600">{formatDate(String((t as any).date || ''))}</td>
+                      <td className="px-3 py-2 text-sm text-gray-600">{formatYMD(String((t as any).date || ''))}</td>
                       <td className="px-3 py-2 text-sm font-semibold text-gray-900 text-right">{formatCurrency(Math.abs(Number((t as any).amount || 0)))}</td>
                     </tr>
                   ))}

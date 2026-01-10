@@ -3,12 +3,12 @@ import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, formatYMD, monthKey, monthLabel } from '../utils/formatters';
 import { Search, Edit, Trash2, Plus, Minus, Car, Plane, Utensils, Music2, ArrowUpRight, ArrowDownRight, CreditCard, ShoppingBag, Heart, Home, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
-import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getDetailedCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
 
@@ -111,22 +111,19 @@ export const Transactions = () => {
     return v === true || v === 't' || v === 'true' || v === 1 || v === '1';
   };
   const ymFromVal = (v: any) => {
-    const d = typeof v === 'string' ? new Date(v) : new Date(v);
-    if (isNaN(d.getTime())) return '';
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
+    const s = typeof v === 'string' ? v : String(v || '');
+    return s.length >= 7 ? s.slice(0, 7) : monthKey(s);
   };
 
   const monthlyChartData = useMemo(() => {
     const now = new Date();
     const buckets = new Map<string, { income: number; expenses: number; label: string }>();
     for (let i = 0; i < 12; i++) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-      const y = d.getUTCFullYear();
-      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
       const key = `${y}-${m}`;
-      const label = `${d.toLocaleString(undefined, { month: 'short', timeZone: 'UTC' })} ${y}`;
+      const label = monthLabel(`${key}-01`);
       buckets.set(key, { income: 0, expenses: 0, label });
     }
 
@@ -178,8 +175,9 @@ export const Transactions = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
-      const label = `${d.toLocaleString(undefined, { month: 'long' })} ${y}`;
-      options.push({ value: `${y}-${m}`, label });
+      const value = `${y}-${m}`;
+      const label = monthLabel(`${value}-01`);
+      options.push({ value, label });
     }
     return options;
   }, []);
@@ -331,7 +329,7 @@ export const Transactions = () => {
     {
       id: 'date',
       label: 'Date',
-      render: (transaction: any) => <span className="text-sm text-gray-600">{formatDate(transaction.date)}</span>,
+      render: (transaction: any) => <span className="text-sm text-gray-600">{formatYMD(String(transaction.date || ''))}</span>,
     },
     {
       id: 'actions',
@@ -386,7 +384,7 @@ export const Transactions = () => {
       enabled: !!transactionTableColumns?.detailed_category,
       render: (transaction: any) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
-          {(transaction as any).detailed_category || ''}
+          {getDetailedCategoryLabelFromConstants(String((transaction as any).detailed_category || ''))}
         </span>
       ),
     },
@@ -423,11 +421,10 @@ export const Transactions = () => {
     if (!sortKey || !sortDir) return data;
     const cmp = (a: any, b: any) => {
       if (sortKey === 'date') {
-        const ad = new Date(a?.date);
-        const bd = new Date(b?.date);
-        const at = isNaN(ad.getTime()) ? 0 : ad.getTime();
-        const bt = isNaN(bd.getTime()) ? 0 : bd.getTime();
-        return sortDir === 'desc' ? bt - at : at - bt;
+        const as = String(a?.date || '').slice(0, 10);
+        const bs = String(b?.date || '').slice(0, 10);
+        const r = as.localeCompare(bs);
+        return sortDir === 'desc' ? -r : r;
       }
       const aa = asNumber(a?.amount);
       const bb = asNumber(b?.amount);
@@ -671,7 +668,7 @@ export const Transactions = () => {
                   >
                     <option value="All">All</option>
                     {detailedCategoryOptions.map(dc => (
-                      <option key={dc} value={dc}>{dc}</option>
+                      <option key={dc} value={dc}>{getDetailedCategoryLabelFromConstants(dc)}</option>
                     ))}
                   </select>
                 </div>

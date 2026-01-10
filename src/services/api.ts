@@ -331,6 +331,38 @@ class ApiService {
       method: 'POST',
     });
   }
+
+  // Admin
+  async updateAllItemWebhooks(webhook_url: string): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/item/webhook/update-all', {
+      method: 'POST',
+      body: JSON.stringify({ webhook_url }),
+    });
+  }
+
+  async recategorizeTransactions(): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/plaid/transactions/recategorize', {
+      method: 'POST',
+    });
+  }
+
+  async syncUserTransactions(user_id: string | number): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/plaid/transactions/sync', {
+      method: 'POST',
+      body: JSON.stringify({ user_id }),
+    });
+  }
+
+  async getUsers(): Promise<User[]> {
+    return this.fetchWithErrorHandling('/admin/users');
+  }
+
+  async updateUserAdmin(user_id: number, payload: { first_name?: string; last_name?: string; email?: string; password?: string }): Promise<User> {
+    return this.fetchWithErrorHandling(`/admin/users/${user_id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
 }
 
 export const apiService = new ApiService();

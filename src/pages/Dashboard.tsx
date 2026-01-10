@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { CategoryChart } from '../components/charts/CategoryChart';
+import { YearlyCategoryChart } from '../components/charts/YearlyCategoryChart';
+import { DetailedStackedBarsChart } from '../components/charts/DetailedStackedBarsChart';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
-import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor } from '../utils/formatters';
+import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor, monthLabel } from '../utils/formatters';
 import { getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { PiggyBank, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -64,7 +66,7 @@ export const Dashboard = () => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const value = `${y}-${m}`;
-      const label = `${d.toLocaleString(undefined, { month: 'long' })} ${y}`;
+      const label = monthLabel(`${value}-01`);
       options.push({ value, label });
     }
     return options;
@@ -92,16 +94,12 @@ export const Dashboard = () => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const key = `${y}-${m}`;
-      const label = `${d.toLocaleString(undefined, { month: 'short' })} ${y}`;
+      const label = monthLabel(`${key}-01`);
       buckets.set(key, { income: 0, expenses: 0, label });
     }
     (transactions || []).forEach((t: any) => {
-      const d: any = t?.date;
-      const dt = typeof d === 'string' ? new Date(d) : new Date(d);
-      if (isNaN(dt.getTime())) return;
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth() + 1).padStart(2, '0');
-      const key = `${y}-${m}`;
+      const s = String(t?.date || '');
+      const key = s.length >= 7 ? s.slice(0, 7) : '';
       const b = buckets.get(key);
       if (!b) return;
       const amt = asNumber(t?.amount);
@@ -128,10 +126,8 @@ export const Dashboard = () => {
       buckets.set(y, { income: 0, expenses: 0 });
     }
     (transactions || []).forEach((t: any) => {
-      const v: any = t?.date;
-      const dt = typeof v === 'string' ? new Date(v) : new Date(v);
-      if (isNaN(dt.getTime())) return;
-      const y = dt.getFullYear();
+      const s = String(t?.date || '');
+      const y = Number(s.slice(0, 4));
       const bucket = buckets.get(y);
       if (!bucket) return;
       const amt = asNumber(t?.amount);
@@ -276,7 +272,7 @@ export const Dashboard = () => {
               const ym = selectedMonth;
               const d = (transactions || []).filter((t: any) => {
                 const v: any = t?.date;
-                const txm = typeof v === 'string' ? v.slice(0,7) : new Date(v).toISOString().slice(0,7);
+                const txm = String(v || '').slice(0, 7);
                 return txm === ym;
               });
               const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
@@ -298,7 +294,7 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="self-start">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
@@ -321,54 +317,55 @@ export const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} />
+            <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} height={560} />
           </CardContent>
         </Card>
       </div>
-
-      {/* Bottom Row - Accounts
+      {/* Detailed Segments - Stacked Bars
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-blue-500">Accounts</h3>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Net Worth</p>
-                <p className="text-2xl font-bold text-green-500">
-                  {formatCurrency((accounts || []).reduce((sum, acc: any) => sum + asNumber(acc?.balance?.current ?? (acc as any)?.current_balance ?? 0), 0))}
-                </p>
+        <div className="lg:col-start-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Detailed Segments</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  {monthOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              {accounts.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  <p>No accounts connected yet</p>
-                  <p className="text-sm">Connect your bank accounts to see your financial overview</p>
-                </div>
-              ) : (
-                (accounts || [])
-                  .filter((a: any) => !!a && typeof a === 'object')
-                  .map((account, idx) => (
-                   <div key={account.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                     <div>
-                       <span className="font-medium text-gray-900">{account?.name || 'Unknown Account'}</span>
-                       <p className="text-sm text-gray-600">{account?.type || account?.subtype || 'Unknown'}</p>
-                     </div>
-                     <div className="flex items-center space-x-2">
-                       <span className={`font-bold ${
-                         (asNumber(account?.balance?.current ?? (account as any)?.current_balance ?? 0)) >= 0 ? 'text-green-500' : 'text-red-500'
-                       }`}>
-                         {formatCurrency(asNumber(account?.balance?.current ?? (account as any)?.current_balance ?? 0))}
-                       </span>
-                     </div>
-                   </div>
-                 ))
-              )}
-            </div>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const ym = selectedMonth;
+                const monthTxns = (transactions || []).filter((t: any) => {
+                  const v: any = t?.date;
+                  const txm = String(v || '').slice(0, 7);
+                  return txm === ym;
+                });
+                const hasExpenses = monthTxns.some((t: any) => (t as any)?.expense === true);
+                if (!hasExpenses) {
+                  return <div className="text-sm text-gray-600">No expenses for this month.</div>;
+                }
+                return <DetailedStackedBarsChart transactionsForMonth={monthTxns as any} selectedMonth={ym} height={560} />;
+              })()}
+            </CardContent>
+          </Card>
+        </div>
+      </div> */}
+      
+      {/* Yearly Category Breakdown */}
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        <Card>
+          <CardContent>
+            <YearlyCategoryChart transactions={transactions as any} height={520} />
           </CardContent>
         </Card>
-      </div> */}
+      </div>
     </Layout>
   );
 };

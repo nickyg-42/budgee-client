@@ -11,9 +11,10 @@ interface MonthlyData {
 interface IncomeExpenseChartProps {
   data: MonthlyData[];
   title?: string;
+  height?: number;
 }
 
-export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => {
+export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseChartProps) => {
   const { semantic } = useTheme();
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
@@ -40,7 +41,7 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
     );
   };
   return (
-    <div className="w-full h-80">
+    <div className="w-full" style={{ height }}>
       {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -64,13 +65,13 @@ export const IncomeExpenseChart = ({ data, title }: IncomeExpenseChartProps) => 
             dataKey="income" 
             fill={semantic.good} 
             name="Income"
-            radius={[2, 2, 0, 0]}
+            radius={[10, 10, 0, 0]}
           />
           <Bar 
             dataKey="expenses" 
             fill={semantic.bad} 
             name="Expenses"
-            radius={[2, 2, 0, 0]}
+            radius={[10, 10, 0, 0]}
           />
         </BarChart>
       </ResponsiveContainer>

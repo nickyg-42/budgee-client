@@ -96,6 +96,7 @@ export interface User {
   updated_at?: string;
   password_hash?: string;
   theme?: string;
+  super_admin?: boolean;
 }
 
 export interface AuthResponse {

@@ -7,6 +7,7 @@ interface JWTPayload {
   first_name?: string;
   last_name?: string;
   theme?: string;
+  super_admin?: boolean;
   exp?: number;
   iat?: number;
 }
@@ -35,6 +36,7 @@ export const extractUserFromJWT = (token: string) => {
     first_name: payload.first_name || '',
     last_name: payload.last_name || '',
     theme: payload.theme || '',
+    super_admin: payload.super_admin === true,
     created_at: new Date().toISOString(), // JWT doesn't typically include creation date
   };
 
