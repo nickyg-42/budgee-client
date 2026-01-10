@@ -1,4 +1,4 @@
-import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest, Budget, TransactionRule } from '../types';
+import { Transaction, Account, PlaidItem, DashboardStats, RecurringTransaction, User, AuthResponse, LoginRequest, RegisterRequest, Budget, TransactionRule, WhitelistedEmail } from '../types';
 
 const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -32,16 +32,23 @@ class ApiService {
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
-        
-        try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (e) {
-          // If we can't parse JSON error, use status text
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        let parsed: any = null;
+        let rawText: string | null = null;
+        if (contentType.includes('application/json')) {
+          try {
+            parsed = await response.json();
+          } catch {}
+        } else {
+          try {
+            rawText = await response.text();
+          } catch {}
+        }
+        if (parsed && (parsed.message || parsed.error)) {
+          errorMessage = String(parsed.message || parsed.error);
+        } else if (rawText && rawText.trim().length > 0) {
+          errorMessage = rawText.trim();
+        } else {
           errorMessage = response.statusText || errorMessage;
         }
 
@@ -50,6 +57,16 @@ class ApiService {
           this.token = null;
           localStorage.removeItem('token');
           // Don't redirect here, let the component handle it
+        } else if (response.status === 403) {
+          const msg = String(errorMessage || '').toLowerCase();
+          const lockedDetected = msg.includes('locked') || (parsed && parsed.locked === true);
+          if (lockedDetected) {
+            this.token = null;
+            localStorage.removeItem('token');
+            try {
+              window.location.href = '/login';
+            } catch {}
+          }
         }
         
         const error: any = new Error(errorMessage);
@@ -57,10 +74,24 @@ class ApiService {
         throw error;
       }
 
-      const responseData = await response.json();
-      return responseData;
+      const okContentType = String(response.headers.get('content-type') || '').toLowerCase();
+      const contentLength = String(response.headers.get('content-length') || '');
+      const isNoContent = response.status === 204 || contentLength === '0';
+      if (isNoContent) return null;
+      if (okContentType.includes('application/json')) {
+        try {
+          return await response.json();
+        } catch {
+          return null;
+        }
+      }
+      try {
+        const text = await response.text();
+        return text && text.length > 0 ? text : null;
+      } catch {
+        return null;
+      }
     } catch (error) {
-      
       throw error;
     }
   }
@@ -91,6 +122,9 @@ class ApiService {
 
   async getPlaidItems(): Promise<PlaidItem[]> {
     return this.fetchWithErrorHandling('/plaid/items');
+  }
+  async getAllPlaidItemsFromDB(): Promise<PlaidItem[]> {
+    return this.fetchWithErrorHandling('/plaid/items/all/db');
   }
 
   async getPlaidAccounts(itemId: string): Promise<Account[]> {
@@ -170,6 +204,11 @@ class ApiService {
       method: 'DELETE',
     });
   }
+  async deleteAdminPlaidItem(itemId: string): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling(`/admin/plaid/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
 
   async deleteTransaction(transactionId: string): Promise<{ success: boolean }>{
     return this.fetchWithErrorHandling(`/plaid/transactions/${transactionId}`, {
@@ -189,87 +228,6 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(data),
     });
-  }
-
-  // Dashboard Data
-  async getDashboardStats(): Promise<DashboardStats> {
-    try {
-      return await this.getDashboardData();
-    } catch (error) {
-      // Fallback mock data if backend endpoint doesn't exist yet
-      return {
-        current_month: {
-          month: 'November',
-          income: 2079,
-          expenses: 3591,
-          savings: -1513,
-          savings_rate: 0
-        },
-        previous_month: {
-          month: 'October',
-          income: 1008,
-          expenses: 1392,
-          savings: -384,
-          savings_rate: 0
-        },
-        top_categories: [
-          { category: 'GENERAL MERCHANDISE', amount: -2078.50, percentage: 57.9 },
-          { category: 'ENTERTAINMENT', amount: -1000.00, percentage: 27.9 },
-          { category: 'TRAVEL', amount: -500.00, percentage: 13.9 },
-          { category: 'TRANSPORTATION', amount: -12.66, percentage: 0.3 }
-        ],
-        accounts: [],
-        net_worth: 113498
-      };
-    }
-  }
-
-  async getRecurringTransactions(): Promise<RecurringTransaction[]> {
-    // Mock data for now - replace with actual endpoint when available
-    return [
-      {
-        id: '1',
-        name: 'INTRST PYMNT',
-        estimated_amount: 4,
-        upcoming_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      },
-      {
-        id: '2',
-        name: "McDonald's",
-        estimated_amount: -12,
-        upcoming_date: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      },
-      {
-        id: '3',
-        name: 'Starbucks',
-        estimated_amount: -4,
-        upcoming_date: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      },
-      {
-        id: '4',
-        name: 'United Airlines',
-        estimated_amount: -500,
-        upcoming_date: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      },
-      {
-        id: '5',
-        name: 'Touchstone Climbing',
-        estimated_amount: -79,
-        upcoming_date: new Date(Date.now() + 24 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      },
-      {
-        id: '6',
-        name: 'CD DEPOSIT .INI',
-        estimated_amount: -1000,
-        upcoming_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-        frequency: 'monthly'
-      }
-    ];
   }
 
   // Budgets
@@ -345,11 +303,25 @@ class ApiService {
       method: 'POST',
     });
   }
-
-  async syncUserTransactions(user_id: string | number): Promise<{ success: boolean }>{
-    return this.fetchWithErrorHandling('/plaid/transactions/sync', {
+  async clearTransactionsCache(): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/admin/cache/clear/transactions', {
       method: 'POST',
-      body: JSON.stringify({ user_id }),
+    });
+  }
+  async clearItemsCache(): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/admin/cache/clear/items', {
+      method: 'POST',
+    });
+  }
+  async clearAccountsCache(): Promise<{ success: boolean }>{
+    return this.fetchWithErrorHandling('/admin/cache/clear/accounts', {
+      method: 'POST',
+    });
+  }
+
+  async syncUserTransactions(user_id: string | number): Promise<{ results: Array<{ item_id: string; success: boolean; error?: string }> }>{
+    return this.fetchWithErrorHandling(`/plaid/transactions/sync/${user_id}`, {
+      method: 'POST',
     });
   }
 
@@ -358,9 +330,45 @@ class ApiService {
   }
 
   async updateUserAdmin(user_id: number, payload: { first_name?: string; last_name?: string; email?: string; password?: string }): Promise<User> {
-    return this.fetchWithErrorHandling(`/admin/users/${user_id}`, {
+    return this.fetchWithErrorHandling(`/admin/user/${user_id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteUserAdmin(user_id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/admin/user/${user_id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Whitelisted Emails
+  async getWhitelistedEmails(): Promise<WhitelistedEmail[]> {
+    return this.fetchWithErrorHandling('/admin/whitelisted-emails');
+  }
+
+  async createWhitelistedEmail(email: string): Promise<WhitelistedEmail> {
+    return this.fetchWithErrorHandling('/admin/whitelisted-emails', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+  
+  async deleteWhitelistedEmail(email_id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/admin/whitelisted-emails/${email_id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async lockUser(user_id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/admin/user/lock/${user_id}`, {
+      method: 'POST',
+    });
+  }
+
+  async unlockUser(user_id: number): Promise<{ success: boolean }> {
+    return this.fetchWithErrorHandling(`/admin/user/unlock/${user_id}`, {
+      method: 'POST',
     });
   }
 }

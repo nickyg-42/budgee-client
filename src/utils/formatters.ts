@@ -48,6 +48,22 @@ export const formatShortDate = (dateString: string): string => {
   }
 };
 
+export const formatDateTimeLocal = (dateString: string): string => {
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateString;
+  }
+};
+
 export const getRelativeTime = (dateString: string): string => {
   try {
     const date = parseYMD(dateString);

@@ -2,7 +2,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { User, Mail, Calendar, Shield, AtSign } from 'lucide-react';
-import { formatDate } from '../utils/formatters';
+import { formatDateTimeLocal } from '../utils/formatters';
 import { useEffect, useState, useRef } from 'react';
 import { apiService } from '../services/api';
 import { toast } from 'sonner';
@@ -155,7 +155,7 @@ export const Profile = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-700">Member Since</p>
-                    <p className="text-gray-900">{formatDate(profileUser.created_at)}</p>
+                    <p className="text-gray-900">{formatDateTimeLocal(String(profileUser.created_at))}</p>
                   </div>
                 </div>
 

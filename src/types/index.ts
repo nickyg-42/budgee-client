@@ -94,9 +94,18 @@ export interface User {
   last_name: string;
   created_at: string;
   updated_at?: string;
+  last_login?: string | null;
+  locked?: boolean;
   password_hash?: string;
   theme?: string;
   super_admin?: boolean;
+}
+
+export interface WhitelistedEmail {
+  id: number;
+  email: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {

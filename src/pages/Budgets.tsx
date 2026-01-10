@@ -144,7 +144,7 @@ export const Budgets = () => {
   const categoryChartData = useMemo(() => {
     const entries = Array.from(currentMonthSpentByCategory.entries());
     if (entries.length === 0) {
-      return [{ category: 'DEFAULT', amount: -1, percentage: 0 }];
+      return [{ category: 'DEFAULT', amount: -0, percentage: 0 }];
     }
     return entries.map(([category, amount]) => ({ category, amount: -Math.abs(amount), percentage: 0 }));
   }, [currentMonthSpentByCategory]);
