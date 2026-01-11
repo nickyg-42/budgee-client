@@ -8,6 +8,7 @@ import { ConditionsBuilder } from '../components/transactionRules/ConditionsBuil
 import type { TransactionRule, ConditionNode, ConditionGroup, ConditionLeaf } from '../types';
 import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { Plus, Pencil, Trash2, PlayCircle, HelpCircle } from 'lucide-react';
+import { formatDateTimeLocal } from '@/utils/formatters';
 
 const isGroup = (node: ConditionNode): node is ConditionGroup => {
   return typeof node === 'object' && (Array.isArray((node as any).and) || Array.isArray((node as any).or));
@@ -267,7 +268,7 @@ export const TransactionRules = () => {
                         <tr key={rule.id}>
                           <td className="px-4 py-2 text-sm text-gray-900">{rule.name}</td>
                         <td className="px-4 py-2 text-sm text-gray-700">{getCategoryLabelFromConstants(rule.personal_finance_category)}</td>
-                          <td className="px-4 py-2 text-sm text-gray-500">{rule.created_at || ''}</td>
+                          <td className="px-4 py-2 text-sm text-gray-500">{formatDateTimeLocal(rule.created_at || '')}</td>
                           <td className="px-4 py-2 text-sm">
                             <div className="flex justify-end space-x-2">
                               <button
