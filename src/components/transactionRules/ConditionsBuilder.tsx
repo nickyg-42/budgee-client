@@ -42,8 +42,7 @@ const emptyGroup = (op: 'and' | 'or' = 'and'): ConditionGroup => ({
 
 const normalizeValue = (field: TransactionRuleField, op: StringOperator | NumberOperator, raw: string): string | number | string[] => {
   if (field === 'amount') {
-    const n = Number(raw);
-    return isNaN(n) ? 0 : n;
+    return raw;
   }
   if (op === 'in') {
     return raw.split(',').map(s => s.trim()).filter(Boolean);
@@ -192,11 +191,13 @@ const LeafEditor = ({ node, onChange, disabled }: { node: ConditionLeaf; onChang
         />
       ) : node.field === 'amount' ? (
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           className="border border-gray-300 rounded-md px-2 py-1 text-sm w-28 flex-shrink-0"
-          value={typeof node.value === 'number' ? node.value : 0}
+          value={typeof node.value === 'number' ? String(node.value) : String((node.value as string) || '')}
           onChange={(e) => setValue(e.target.value)}
           disabled={disabled}
+          placeholder="-123.45"
         />
       ) : (
         <input

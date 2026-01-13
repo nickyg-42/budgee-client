@@ -118,13 +118,43 @@ export const TransactionRules = () => {
       setEditing(full);
       setName(full.name || '');
       setCategory(full.personal_finance_category || 'OTHER');
-      setConditions(full.conditions || emptyGroup());
+      const fromBackend = (node: ConditionNode): ConditionNode => {
+        if (isGroup(node)) {
+          const key = (node as any).and ? 'and' : 'or';
+          const children = (node as any)[key] as ConditionNode[];
+          return { [key]: children.map(fromBackend) } as ConditionGroup;
+        }
+        if (isLeaf(node) && node.field === 'amount') {
+          const v = typeof node.value === 'number' ? node.value : Number(node.value);
+          const human = -Number(v || 0);
+          const map: Record<string, string> = { eq: 'eq', lt: 'gt', lte: 'gte', gt: 'lt', gte: 'lte' };
+          const nextOp = map[String(node.op)] || node.op;
+          return { ...node, op: nextOp as any, value: human };
+        }
+        return node;
+      };
+      setConditions(fromBackend(full.conditions || emptyGroup()));
       setOpen(true);
     } catch {
       setEditing(rule);
       setName(rule.name || '');
       setCategory(rule.personal_finance_category || 'OTHER');
-      setConditions(rule.conditions || emptyGroup());
+      const fromBackend = (node: ConditionNode): ConditionNode => {
+        if (isGroup(node)) {
+          const key = (node as any).and ? 'and' : 'or';
+          const children = (node as any)[key] as ConditionNode[];
+          return { [key]: children.map(fromBackend) } as ConditionGroup;
+        }
+        if (isLeaf(node) && node.field === 'amount') {
+          const v = typeof node.value === 'number' ? node.value : Number(node.value);
+          const human = -Number(v || 0);
+          const map: Record<string, string> = { eq: 'eq', lt: 'gt', lte: 'gte', gt: 'lt', gte: 'lte' };
+          const nextOp = map[String(node.op)] || node.op;
+          return { ...node, op: nextOp as any, value: human };
+        }
+        return node;
+      };
+      setConditions(fromBackend(rule.conditions || emptyGroup()));
       setOpen(true);
     }
   };
