@@ -151,7 +151,10 @@ export const Accounts = () => {
   const getAvailableBalance = (a: any) => asNumber(a?.balance?.available ?? a?.available_balance);
 
   const totalNetWorth = (accounts || []).reduce((sum, account) => {
-    return sum + getCurrentBalance(account);
+    const type = String(account?.type || '').toLowerCase();
+    const bal = getCurrentBalance(account);
+    const contrib = (type === 'credit' || type === 'loan') ? -Math.abs(bal) : bal;
+    return sum + contrib;
   }, 0);
 
   const accountsByType = (accounts || []).reduce((acc, account) => {

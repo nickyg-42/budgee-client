@@ -614,6 +614,12 @@ export const Transactions = () => {
                   onChange={(e) => setTransactionFilters({ search: e.target.value })}
                   className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <button
+                  onClick={() => { setTransactionFilters({ search: '' }); setCurrentPage(1); }}
+                  className="mt-2 text-xs text-gray-600 underline"
+                >
+                  Clear search
+                </button>
               </div>
               {transactionTableColumns?.payment_channel && (
                 <div className="col-span-1">
@@ -643,6 +649,12 @@ export const Transactions = () => {
                     <option key={acc.id} value={acc.id}>{acc.name}</option>
                   ))}
                 </select>
+                <button
+                  onClick={() => { setTransactionFilters({ account: 'All' }); setCurrentPage(1); }}
+                  className="mt-2 text-xs text-gray-600 underline"
+                >
+                  Clear account
+                </button>
               </div>
               
               <div className="col-span-2">
@@ -657,6 +669,12 @@ export const Transactions = () => {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+                <button
+                  onClick={() => { setTransactionFilters({ primary_category: 'All' }); setCurrentPage(1); }}
+                  className="mt-2 text-xs text-gray-600 underline"
+                >
+                  Clear primary category
+                </button>
               </div>
               {transactionTableColumns?.detailed_category && (
                 <div className="col-span-2">

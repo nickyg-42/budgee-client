@@ -284,7 +284,7 @@ class ApiService {
     });
   }
 
-  async triggerTransactionRules(): Promise<{ success: boolean }> {
+  async triggerTransactionRules(): Promise<{ message?: string; num_adjusted?: string | number }> {
     return this.fetchWithErrorHandling('/transaction-rules/trigger', {
       method: 'POST',
     });

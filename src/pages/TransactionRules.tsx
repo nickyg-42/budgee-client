@@ -226,8 +226,10 @@ export const TransactionRules = () => {
         onClick={async () => {
           try {
             setIsLoading(true);
-            await apiService.triggerTransactionRules();
-            toast.success('Rules triggered');
+            const res = await apiService.triggerTransactionRules();
+            const c = Number((res as any)?.num_adjusted);
+            const msg = (res as any)?.message || 'Rules triggered';
+            toast.success(Number.isFinite(c) ? `${msg} — ${c} transactions adjusted` : msg);
           } catch (e: any) {
             toast.error(e?.message || 'Failed to run rules');
           } finally {
