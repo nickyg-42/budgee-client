@@ -1006,6 +1006,18 @@ export const Transactions = () => {
                   }) as any);
                   toast.success('Transaction updated');
                   setIsEditOpen(false);
+                  try {
+                    setIsLoading(true);
+                    const txnsByAccount = await Promise.all((accounts || []).map((acc) => {
+                      return apiService.getTransactions(acc.id).catch(() => []);
+                    }));
+                    const normalized = (txnsByAccount || []).map((arr) => Array.isArray(arr) ? arr : (arr ? [arr] : []));
+                    const allTxns = ([] as any[]).concat(...normalized).filter((t) => !!t && typeof t === 'object');
+                    setTransactions(allTxns as any);
+                  } catch (_) {
+                  } finally {
+                    setIsLoading(false);
+                  }
                 } catch (e) {
                   toast.error('Failed to update transaction');
                 }
