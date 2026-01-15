@@ -5,6 +5,7 @@ import { formatCurrency, formatYMD } from '../../utils/formatters';
 import { getCategoryLabelFromConstants } from '../../constants/personalFinanceCategories';
 import { useTheme } from '../../theme/ThemeContext';
 import { Transaction } from '../../types';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface CategoryChartProps {
   data: CategorySpending[];
@@ -89,6 +90,8 @@ export const CategoryChart = ({
   }, [chartData]);
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [sortKey, setSortKey] = useState<'date' | 'amount' | null>('amount');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc' | null>('desc');
   const filteredTxns = useMemo(() => {
     if (!selectedRaw) return [];
     const list = (transactionsForMonth || []).filter((t: any) => {
@@ -96,12 +99,43 @@ export const CategoryChart = ({
       const cat = String((t as any)?.primary_category || 'OTHER');
       return cat === selectedRaw;
     });
-    return list
-      .slice()
-      .sort((a: any, b: any) => Math.abs(Number((b as any)?.amount || 0)) - Math.abs(Number((a as any)?.amount || 0)));
+    return list;
   }, [transactionsForMonth, selectedRaw]);
-  const totalPages = Math.max(1, Math.ceil(filteredTxns.length / pageSize));
-  const paged = filteredTxns.slice((page - 1) * pageSize, page * pageSize);
+  const handleSortClick = (id: 'date' | 'amount') => {
+    if (sortKey === id) {
+      if (sortDir === 'desc') {
+        setSortDir('asc');
+      } else if (sortDir === 'asc') {
+        setSortKey(null);
+        setSortDir(null);
+      } else {
+        setSortDir('desc');
+      }
+    } else {
+      setSortKey(id);
+      setSortDir('desc');
+    }
+    setPage(1);
+  };
+  const sortedTxns = useMemo(() => {
+    const data = [...filteredTxns];
+    if (!sortKey || !sortDir) return data;
+    const cmp = (a: any, b: any) => {
+      if (sortKey === 'date') {
+        const as = String(a?.date || '').slice(0, 10);
+        const bs = String(b?.date || '').slice(0, 10);
+        const r = as.localeCompare(bs);
+        return sortDir === 'desc' ? -r : r;
+      }
+      const aa = Math.abs(Number(a?.amount || 0));
+      const bb = Math.abs(Number(b?.amount || 0));
+      return sortDir === 'desc' ? bb - aa : aa - bb;
+    };
+    data.sort(cmp);
+    return data;
+  }, [filteredTxns, sortKey, sortDir]);
+  const totalPages = Math.max(1, Math.ceil(sortedTxns.length / pageSize));
+  const paged = sortedTxns.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="w-full">
@@ -206,8 +240,36 @@ export const CategoryChart = ({
                 <thead>
                   <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
                     <th className="px-3 py-2">Name</th>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
+                    <th className="px-3 py-2">
+                      <button
+                        onClick={() => handleSortClick('date')}
+                        className={
+                          sortKey === 'date' && sortDir
+                            ? 'flex items-center space-x-2 text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded'
+                            : 'flex items-center space-x-2 text-gray-700 hover:text-gray-900'
+                        }
+                      >
+                        <span>Date</span>
+                        {!(sortKey === 'date' && sortDir) && <ArrowUpRight className="w-3 h-3 text-gray-300" />}
+                        {sortKey === 'date' && sortDir === 'desc' && <ArrowDownRight className="w-3 h-3 text-blue-600" />}
+                        {sortKey === 'date' && sortDir === 'asc' && <ArrowUpRight className="w-3 h-3 text-blue-600" />}
+                      </button>
+                    </th>
+                    <th className="px-3 py-2 text-right">
+                      <button
+                        onClick={() => handleSortClick('amount')}
+                        className={
+                          sortKey === 'amount' && sortDir
+                            ? 'flex items-center justify-end space-x-2 w-full text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded'
+                            : 'flex items-center justify-end space-x-2 w-full text-gray-700 hover:text-gray-900'
+                        }
+                      >
+                        <span>Amount</span>
+                        {!(sortKey === 'amount' && sortDir) && <ArrowUpRight className="w-3 h-3 text-gray-300" />}
+                        {sortKey === 'amount' && sortDir === 'desc' && <ArrowDownRight className="w-3 h-3 text-blue-600" />}
+                        {sortKey === 'amount' && sortDir === 'asc' && <ArrowUpRight className="w-3 h-3 text-blue-600" />}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">

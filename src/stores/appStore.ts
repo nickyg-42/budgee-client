@@ -37,19 +37,31 @@ interface AppState {
   setTransactionTableColumns: (update: Partial<AppState['transactionTableColumns']>) => void;
 }
 
-const initialFilters: FilterOptions = {
-  search: '',
-  account: 'All',
-  user: 'All',
-  primary_category: 'All',
-  payment_channel: 'All',
-  detailed_category: 'All',
-  tags: 'All',
-  date_from: '',
-  date_to: '',
-  amount_min: '',
-  amount_max: '',
-};
+const initialFilters: FilterOptions = (() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const currentMonth = `${y}-${m}`;
+  return {
+    search: '',
+    account: 'All',
+    user: 'All',
+    primary_category: 'All',
+    payment_channel: 'All',
+    detailed_category: 'All',
+    tags: 'All',
+    date_from: '',
+    date_to: '',
+    amount_min: '',
+    amount_max: '',
+    accounts: [],
+    account_op: 'in',
+    primary_categories: [],
+    primary_category_op: 'in',
+    months: [currentMonth],
+    month_op: 'in',
+  };
+})();
 
 const defaultColumnsConfig = {
   payment_channel: false,

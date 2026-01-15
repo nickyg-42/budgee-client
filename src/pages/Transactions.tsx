@@ -30,6 +30,9 @@ export const Transactions = () => {
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [sortKey, setSortKey] = useState<'date' | 'amount' | null>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc' | null>('desc');
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const addTransactionFeatureEnabled = false;
@@ -46,11 +49,11 @@ export const Transactions = () => {
   useEffect(() => {
     if (monthInitRef.current) return;
     monthInitRef.current = true;
-    if (!transactionFilters.date_from) {
+    if (!Array.isArray(transactionFilters.months) || transactionFilters.months.length === 0) {
       const now = new Date();
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
-      setTransactionFilters({ date_from: `${y}-${m}` });
+      setTransactionFilters({ months: [`${y}-${m}`], month_op: 'in' });
       setCurrentPage(1);
     }
   }, []);
@@ -208,11 +211,22 @@ export const Transactions = () => {
     if (transactionFilters.search && !name.includes(transactionFilters.search.toLowerCase())) {
       return false;
     }
-    if (transactionFilters.account !== 'All' && String(transaction.account_id) !== transactionFilters.account) {
-      return false;
+    // Account filter (In / Not in)
+    if (Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0) {
+      const inSet = transactionFilters.accounts.includes(String(transaction.account_id));
+      if ((transactionFilters.account_op || 'in') === 'in' && !inSet) return false;
+      if ((transactionFilters.account_op || 'in') === 'not_in' && inSet) return false;
+    } else if (transactionFilters.account && transactionFilters.account !== 'All') {
+      if (String(transaction.account_id) !== transactionFilters.account) return false;
     }
-    if (transactionFilters.primary_category !== 'All' && safePrimaryCategory(transaction) !== transactionFilters.primary_category) {
-      return false;
+    // Primary category filter (In / Not in)
+    if (Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0) {
+      const pc = safePrimaryCategory(transaction);
+      const inSet = transactionFilters.primary_categories.includes(pc);
+      if ((transactionFilters.primary_category_op || 'in') === 'in' && !inSet) return false;
+      if ((transactionFilters.primary_category_op || 'in') === 'not_in' && inSet) return false;
+    } else if (transactionFilters.primary_category && transactionFilters.primary_category !== 'All') {
+      if (safePrimaryCategory(transaction) !== transactionFilters.primary_category) return false;
     }
     if (transactionFilters.payment_channel !== 'All') {
       const pc = String((transaction as any)?.payment_channel || '');
@@ -223,9 +237,13 @@ export const Transactions = () => {
       if (dc !== transactionFilters.detailed_category) return false;
     }
     // Month filter
-    if (transactionFilters.date_from) {
+    const txMonth = ymFromVal((transaction as any)?.date);
+    if (Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0) {
+      const inSet = transactionFilters.months.includes(txMonth);
+      if ((transactionFilters.month_op || 'in') === 'in' && !inSet) return false;
+      if ((transactionFilters.month_op || 'in') === 'not_in' && inSet) return false;
+    } else if (transactionFilters.date_from) {
       const selectedMonth = transactionFilters.date_from.slice(0, 7);
-      const txMonth = ymFromVal((transaction as any)?.date);
       if (txMonth !== selectedMonth) return false;
     }
     // Amount range
@@ -637,44 +655,132 @@ export const Transactions = () => {
                 </div>
               )}
               
-              <div className="col-span-1">
+              <div className="col-span-3">
                 <span className="text-sm font-medium">Account</span>
-                <select
-                  value={transactionFilters.account}
-                  onChange={(e) => setTransactionFilters({ account: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="All">All</option>
-                  {(accounts || []).map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.name}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => { setTransactionFilters({ account: 'All' }); setCurrentPage(1); }}
-                  className="mt-2 text-xs text-gray-600 underline"
-                >
-                  Clear account
-                </button>
+                <div className="mt-2 flex items-center space-x-2">
+                  <select
+                    value={transactionFilters.account_op || 'in'}
+                    onChange={(e) => { setTransactionFilters({ account_op: e.target.value as any }); setCurrentPage(1); }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="in">In</option>
+                    <option value="not_in">Not in</option>
+                  </select>
+                  <button
+                    onClick={() => setShowAccountPicker(v => !v)}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
+                  >
+                    {showAccountPicker ? 'Hide accounts' : 'Choose accounts'}
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center space-x-3">
+                  <span className="text-xs text-gray-500">
+                    {Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0
+                      ? `${transactionFilters.accounts.length} selected (${transactionFilters.account_op || 'in'})`
+                      : 'All accounts'}
+                  </span>
+                  <button
+                    onClick={() => { setTransactionFilters({ accounts: [] }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Clear accounts
+                  </button>
+                  <button
+                    onClick={() => { setTransactionFilters({ accounts: (accounts || []).map(a => String(a.id)) }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Select all
+                  </button>
+                </div>
+                {showAccountPicker && (
+                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
+                    <div className="flex flex-wrap gap-2">
+                      {(accounts || []).map(acc => {
+                        const checked = Array.isArray(transactionFilters.accounts) ? transactionFilters.accounts.includes(String(acc.id)) : false;
+                        return (
+                          <label key={acc.id} className="inline-flex items-center space-x-1 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const prev = Array.isArray(transactionFilters.accounts) ? [...transactionFilters.accounts] : [];
+                                const id = String(acc.id);
+                                const next = e.target.checked ? Array.from(new Set([...prev, id])) : prev.filter(v => v !== id);
+                                setTransactionFilters({ accounts: next });
+                                setCurrentPage(1);
+                              }}
+                            />
+                            <span>{acc.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               
-              <div className="col-span-2">
+              <div className="col-span-3">
                 <span className="text-sm font-medium">Primary Category</span>
-                <select
-                  value={transactionFilters.primary_category}
-                  onChange={(e) => setTransactionFilters({ primary_category: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="All">All</option>
-                  {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => { setTransactionFilters({ primary_category: 'All' }); setCurrentPage(1); }}
-                  className="mt-2 text-xs text-gray-600 underline"
-                >
-                  Clear primary category
-                </button>
+                <div className="mt-2 flex items-center space-x-2">
+                  <select
+                    value={transactionFilters.primary_category_op || 'in'}
+                    onChange={(e) => { setTransactionFilters({ primary_category_op: e.target.value as any }); setCurrentPage(1); }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="in">In</option>
+                    <option value="not_in">Not in</option>
+                  </select>
+                  <button
+                    onClick={() => setShowCategoryPicker(v => !v)}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
+                  >
+                    {showCategoryPicker ? 'Hide categories' : 'Choose categories'}
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center space-x-3">
+                  <span className="text-xs text-gray-500">
+                    {Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0
+                      ? `${transactionFilters.primary_categories.length} selected (${transactionFilters.primary_category_op || 'in'})`
+                      : 'All categories'}
+                  </span>
+                  <button
+                    onClick={() => { setTransactionFilters({ primary_categories: [] }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Clear categories
+                  </button>
+                  <button
+                    onClick={() => { setTransactionFilters({ primary_categories: PERSONAL_FINANCE_CATEGORY_OPTIONS.map(o => o.value) }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Select all
+                  </button>
+                </div>
+                {showCategoryPicker && (
+                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
+                    <div className="flex flex-wrap gap-2">
+                      {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => {
+                        const checked = Array.isArray(transactionFilters.primary_categories) ? transactionFilters.primary_categories.includes(opt.value) : false;
+                        return (
+                          <label key={opt.value} className="inline-flex items-center space-x-1 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const prev = Array.isArray(transactionFilters.primary_categories) ? [...transactionFilters.primary_categories] : [];
+                                const val = opt.value;
+                                const next = e.target.checked ? Array.from(new Set([...prev, val])) : prev.filter(v => v !== val);
+                                setTransactionFilters({ primary_categories: next });
+                                setCurrentPage(1);
+                              }}
+                            />
+                            <span>{opt.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               {transactionTableColumns?.detailed_category && (
                 <div className="col-span-2">
@@ -692,26 +798,68 @@ export const Transactions = () => {
                 </div>
               )}
               
-              <div className="col-span-2">
+              <div className="col-span-3">
                 <span className="text-sm font-medium">Month</span>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center space-x-2">
                   <select
-                    value={transactionFilters.date_from}
-                    onChange={(e) => { setTransactionFilters({ date_from: e.target.value }); setCurrentPage(1); }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={transactionFilters.month_op || 'in'}
+                    onChange={(e) => { setTransactionFilters({ month_op: e.target.value as any }); setCurrentPage(1); }}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
                   >
-                    <option value="">All</option>
-                    {monthOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
+                    <option value="in">In</option>
+                    <option value="not_in">Not in</option>
                   </select>
+                  <button
+                    onClick={() => setShowMonthPicker(v => !v)}
+                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
+                  >
+                    {showMonthPicker ? 'Hide months' : 'Choose months'}
+                  </button>
                 </div>
-                <button
-                  onClick={() => { setTransactionFilters({ date_from: '' }); setCurrentPage(1); }}
-                  className="mt-2 text-xs text-gray-600 underline"
-                >
-                  Clear month
-                </button>
+                <div className="mt-2 flex items-center space-x-3">
+                  <span className="text-xs text-gray-500">
+                    {Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0
+                      ? `${transactionFilters.months.length} selected (${transactionFilters.month_op || 'in'})`
+                      : 'All months'}
+                  </span>
+                  <button
+                    onClick={() => { setTransactionFilters({ months: [] }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Clear months
+                  </button>
+                  <button
+                    onClick={() => { setTransactionFilters({ months: monthOptions.map(o => o.value) }); setCurrentPage(1); }}
+                    className="text-xs text-gray-600 underline"
+                  >
+                    Select all
+                  </button>
+                </div>
+                {showMonthPicker && (
+                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
+                    <div className="flex flex-wrap gap-2">
+                      {monthOptions.map(opt => {
+                        const checked = Array.isArray(transactionFilters.months) ? transactionFilters.months.includes(opt.value) : false;
+                        return (
+                          <label key={opt.value} className="inline-flex items-center space-x-1 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const prev = Array.isArray(transactionFilters.months) ? [...transactionFilters.months] : [];
+                                const val = opt.value;
+                                const next = e.target.checked ? Array.from(new Set([...prev, val])) : prev.filter(v => v !== val);
+                                setTransactionFilters({ months: next });
+                                setCurrentPage(1);
+                              }}
+                            />
+                            <span>{opt.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="col-span-2">

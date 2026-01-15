@@ -3,13 +3,12 @@ import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { CategoryChart } from '../components/charts/CategoryChart';
 import { YearlyCategoryChart } from '../components/charts/YearlyCategoryChart';
-import { DetailedStackedBarsChart } from '../components/charts/DetailedStackedBarsChart';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
-import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor, monthLabel } from '../utils/formatters';
+import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor, monthLabel, formatYMD } from '../utils/formatters';
 import { getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
-import { PiggyBank, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { PiggyBank, Calendar, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -82,9 +81,14 @@ export const Dashboard = () => {
   }, [selectedMonth]);
 
   const currentMonthLabel = useMemo(() => {
-    const d = new Date();
-    return d.toLocaleString(undefined, { month: 'long' });
-  }, []);
+    const ym = selectedMonth || (() => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    })();
+    return monthLabel(`${ym}-01`);
+  }, [selectedMonth]);
 
   const monthAgg = useMemo(() => {
     const now = new Date();
@@ -143,25 +147,72 @@ export const Dashboard = () => {
   }, [transactions]);
 
   const [chartMode, setChartMode] = useState<'months' | 'years'>('months');
+  const [incomeSortKey, setIncomeSortKey] = useState<'date' | 'amount' | null>('date');
+  const [incomeSortDir, setIncomeSortDir] = useState<'desc' | 'asc' | null>('desc');
+  const handleIncomeSortClick = (id: 'date' | 'amount') => {
+    if (incomeSortKey === id) {
+      if (incomeSortDir === 'desc') {
+        setIncomeSortDir('asc');
+      } else if (incomeSortDir === 'asc') {
+        setIncomeSortKey(null);
+        setIncomeSortDir(null);
+      } else {
+        setIncomeSortDir('desc');
+      }
+    } else {
+      setIncomeSortKey(id);
+      setIncomeSortDir('desc');
+    }
+  };
+  const incomeTxnsForMonth = useMemo(() => {
+    const ym = selectedMonth || '';
+    return (transactions || []).filter((t: any) => {
+      const v: any = t?.date;
+      const txm = String(v || '').slice(0, 7);
+      return txm === ym && (t as any)?.income === true;
+    });
+  }, [transactions, selectedMonth]);
+  const sortedIncomeTxns = useMemo(() => {
+    const data = [...incomeTxnsForMonth];
+    if (!incomeSortKey || !incomeSortDir) return data;
+    const cmp = (a: any, b: any) => {
+      if (incomeSortKey === 'date') {
+        const as = String(a?.date || '').slice(0, 10);
+        const bs = String(b?.date || '').slice(0, 10);
+        const r = as.localeCompare(bs);
+        return incomeSortDir === 'desc' ? -r : r;
+      }
+      const aa = Math.abs(Number(a?.amount || 0));
+      const bb = Math.abs(Number(b?.amount || 0));
+      return incomeSortDir === 'desc' ? bb - aa : aa - bb;
+    };
+    data.sort(cmp);
+    return data;
+  }, [incomeTxnsForMonth, incomeSortKey, incomeSortDir]);
 
   const currentMonthStats = useMemo(() => {
-    const now = new Date();
-    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const key = selectedMonth || (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    })();
     const b = monthAgg.find(m => m.key === key);
     const income = b ? b.income : 0;
     const expenses = b ? b.expenses : 0;
     const savings = income - expenses;
     const savings_rate = income > 0 ? (savings / income) * 100 : 0;
     return { income, expenses, savings, savings_rate };
-  }, [monthAgg]);
+  }, [monthAgg, selectedMonth]);
 
   const previousMonthStats = useMemo(() => {
-    const now = new Date();
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const [y, m] = (selectedMonth || (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    })()).split('-').map(Number);
+    const prev = new Date(y, (m || 1) - 2, 1);
     const key = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
     const b = monthAgg.find(m => m.key === key);
     return { income: b ? b.income : 0, expenses: b ? b.expenses : 0 };
-  }, [monthAgg]);
+  }, [monthAgg, selectedMonth]);
 
   const expenseChangeValue = calculatePercentageChange(currentMonthStats.expenses, previousMonthStats.expenses);
   const expenseChange = formatPercentage(expenseChangeValue);
@@ -359,7 +410,76 @@ export const Dashboard = () => {
       </div> */}
       
       {/* Yearly Category Breakdown */}
-      <div className="grid grid-cols-1 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Monthly Income</span>
+              <span className="text-xs text-gray-500">{currentMonthLabel}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
+                        <th className="px-3 py-2">Name</th>
+                        <th className="px-3 py-2">
+                          <button
+                            onClick={() => handleIncomeSortClick('date')}
+                            className={
+                              incomeSortKey === 'date' && incomeSortDir
+                                ? 'flex items-center space-x-2 text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded'
+                                : 'flex items-center space-x-2 text-gray-700 hover:text-gray-900'
+                            }
+                          >
+                            <span>Date</span>
+                            {!(incomeSortKey === 'date' && incomeSortDir) && <ArrowUpRight className="w-3 h-3 text-gray-300" />}
+                            {incomeSortKey === 'date' && incomeSortDir === 'desc' && <ArrowDownRight className="w-3 h-3 text-blue-600" />}
+                            {incomeSortKey === 'date' && incomeSortDir === 'asc' && <ArrowUpRight className="w-3 h-3 text-blue-600" />}
+                          </button>
+                        </th>
+                        <th className="px-3 py-2 text-right">
+                          <button
+                            onClick={() => handleIncomeSortClick('amount')}
+                            className={
+                              incomeSortKey === 'amount' && incomeSortDir
+                                ? 'flex items-center justify-end space-x-2 w-full text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded'
+                                : 'flex items-center justify-end space-x-2 w-full text-gray-700 hover:text-gray-900'
+                            }
+                          >
+                            <span>Amount</span>
+                            {!(incomeSortKey === 'amount' && incomeSortDir) && <ArrowUpRight className="w-3 h-3 text-gray-300" />}
+                            {incomeSortKey === 'amount' && incomeSortDir === 'desc' && <ArrowDownRight className="w-3 h-3 text-blue-600" />}
+                            {incomeSortKey === 'amount' && incomeSortDir === 'asc' && <ArrowUpRight className="w-3 h-3 text-blue-600" />}
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {sortedIncomeTxns.map((t: any) => (
+                        <tr key={String((t as any).id)}>
+                          <td className="px-3 py-2">
+                            <div className="text-sm font-medium text-gray-900">{String((t as any).name || (t as any).merchant_name || 'Unknown')}</div>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600">{formatYMD(String((t as any).date || ''))}</td>
+                          <td className="px-3 py-2 text-sm font-semibold text-gray-900 text-right">
+                            <span className="font-bold" style={{ color: semantic.good }}>
+                              {formatCurrency(Math.abs(Number((t as any).amount || 0)))}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {sortedIncomeTxns.length === 0 && (
+                        <tr>
+                          <td className="px-3 py-4 text-sm text-gray-600" colSpan={3}>No income transactions for this month</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent>
             <YearlyCategoryChart transactions={transactions as any} height={520} />

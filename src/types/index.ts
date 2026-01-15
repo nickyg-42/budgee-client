@@ -74,16 +74,22 @@ export interface RecurringTransaction {
 
 export interface FilterOptions {
   search: string;
-  account: string;
+  account?: string;
   user: string;
-  primary_category: string;
+  primary_category?: string;
   payment_channel: string;
   detailed_category: string;
   tags: string;
-  date_from: string;
-  date_to: string;
+  date_from?: string;
+  date_to?: string;
   amount_min: string;
   amount_max: string;
+  accounts?: string[];
+  account_op?: 'in' | 'not_in';
+  primary_categories?: string[];
+  primary_category_op?: 'in' | 'not_in';
+  months?: string[];
+  month_op?: 'in' | 'not_in';
 }
 
 export interface User {
