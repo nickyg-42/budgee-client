@@ -8,6 +8,7 @@ import { ConditionsBuilder } from '../components/transactionRules/ConditionsBuil
 import type { TransactionRule, ConditionNode, ConditionGroup, ConditionLeaf } from '../types';
 import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { Plus, Pencil, Trash2, PlayCircle, HelpCircle } from 'lucide-react';
+import { PillButton } from '../components/ui/PillButton';
 import { formatDateTimeLocal } from '@/utils/formatters';
 
 const isGroup = (node: ConditionNode): node is ConditionGroup => {
@@ -236,18 +237,15 @@ export const TransactionRules = () => {
             setIsLoading(false);
           }
         }}
-        className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+        className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
       >
         <PlayCircle className="w-4 h-4" />
         <span>Run Rules</span>
       </button>
-      <button
-        onClick={openCreate}
-        className="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700"
-      >
-        <Plus className="w-4 h-4" />
+      <PillButton size="sm" onClick={openCreate}>
+        <Plus className="w-4 h-4 mr-2" />
         <span>New Rule</span>
-      </button>
+      </PillButton>
     </div>
   );
 

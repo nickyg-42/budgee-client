@@ -7,6 +7,7 @@ import { Budget, Transaction } from '../types';
 import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { formatCurrency, formatDate, monthLabel } from '../utils/formatters';
 import { Plus, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { PillButton } from '../components/ui/PillButton';
 import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
 import { CategoryChart } from '../components/charts/CategoryChart';
@@ -240,13 +241,10 @@ export const Budgets = () => {
     <Layout>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Budgets</h1>
-        <button
-          className="inline-flex items-center px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-          onClick={() => setIsAddOpen(true)}
-        >
+        <PillButton size="md" onClick={() => setIsAddOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add New
-        </button>
+        </PillButton>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
@@ -404,18 +402,8 @@ export const Budgets = () => {
         onClose={() => setIsAddOpen(false)}
         actions={(
           <>
-            <button
-              onClick={() => setIsAddOpen(false)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddBudget}
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Save
-            </button>
+            <PillButton variant="inactive" size="md" onClick={() => setIsAddOpen(false)}>Cancel</PillButton>
+            <PillButton size="md" onClick={handleAddBudget}>Save</PillButton>
           </>
         )}
       >
@@ -452,18 +440,8 @@ export const Budgets = () => {
         onClose={() => setEditBudget(null)}
         actions={(
           <>
-            <button
-              onClick={() => setEditBudget(null)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Save
-            </button>
+            <PillButton variant="inactive" size="md" onClick={() => setEditBudget(null)}>Cancel</PillButton>
+            <PillButton size="md" onClick={handleSaveEdit}>Save</PillButton>
           </>
         )}
       >

@@ -8,9 +8,12 @@ import { Search, Edit, Trash2, Plus, Minus, Car, Plane, Utensils, Music2, ArrowU
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
+import { FilterPill } from '../components/ui/FilterPill';
+import { PillButton } from '../components/ui/PillButton';
 import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getDetailedCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
+import { SingleSlider } from '../components/ui/SingleSlider';
 
 export const Transactions = () => {
   const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
@@ -30,9 +33,9 @@ export const Transactions = () => {
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [sortKey, setSortKey] = useState<'date' | 'amount' | null>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc' | null>('desc');
-  const [showAccountPicker, setShowAccountPicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [expandAccounts, setExpandAccounts] = useState(false);
+  const [expandCategories, setExpandCategories] = useState(false);
+  const [expandMonths, setExpandMonths] = useState(false);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const addTransactionFeatureEnabled = false;
@@ -53,7 +56,7 @@ export const Transactions = () => {
       const now = new Date();
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
-      setTransactionFilters({ months: [`${y}-${m}`], month_op: 'in' });
+      setTransactionFilters({ months: [`${y}-${m}`] });
       setCurrentPage(1);
     }
   }, []);
@@ -202,6 +205,19 @@ export const Transactions = () => {
     });
     return Array.from(set);
   }, [transactions]);
+  const sortedCategoryOptions = useMemo(() => {
+    const priority = ['Rent & Utilities', 'Food & Drink', 'Income'];
+    const indexOf = (label: string) => {
+      const i = priority.indexOf(label);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return [...PERSONAL_FINANCE_CATEGORY_OPTIONS].sort((a, b) => {
+      const ai = indexOf(a.label);
+      const bi = indexOf(b.label);
+      if (ai !== bi) return ai - bi;
+      return 0;
+    });
+  }, []);
 
   const filteredTransactions = (transactions || []).filter(transaction => {
     if (!transaction || typeof transaction !== 'object') {
@@ -211,20 +227,16 @@ export const Transactions = () => {
     if (transactionFilters.search && !name.includes(transactionFilters.search.toLowerCase())) {
       return false;
     }
-    // Account filter (In / Not in)
     if (Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0) {
       const inSet = transactionFilters.accounts.includes(String(transaction.account_id));
-      if ((transactionFilters.account_op || 'in') === 'in' && !inSet) return false;
-      if ((transactionFilters.account_op || 'in') === 'not_in' && inSet) return false;
+      if (!inSet) return false;
     } else if (transactionFilters.account && transactionFilters.account !== 'All') {
       if (String(transaction.account_id) !== transactionFilters.account) return false;
     }
-    // Primary category filter (In / Not in)
     if (Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0) {
       const pc = safePrimaryCategory(transaction);
       const inSet = transactionFilters.primary_categories.includes(pc);
-      if ((transactionFilters.primary_category_op || 'in') === 'in' && !inSet) return false;
-      if ((transactionFilters.primary_category_op || 'in') === 'not_in' && inSet) return false;
+      if (!inSet) return false;
     } else if (transactionFilters.primary_category && transactionFilters.primary_category !== 'All') {
       if (safePrimaryCategory(transaction) !== transactionFilters.primary_category) return false;
     }
@@ -240,13 +252,12 @@ export const Transactions = () => {
     const txMonth = ymFromVal((transaction as any)?.date);
     if (Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0) {
       const inSet = transactionFilters.months.includes(txMonth);
-      if ((transactionFilters.month_op || 'in') === 'in' && !inSet) return false;
-      if ((transactionFilters.month_op || 'in') === 'not_in' && inSet) return false;
+      if (!inSet) return false;
     } else if (transactionFilters.date_from) {
       const selectedMonth = transactionFilters.date_from.slice(0, 7);
       if (txMonth !== selectedMonth) return false;
     }
-    // Amount range
+    /* Amount range filter temporarily removed
     const amt = asNumber(transaction.amount);
     const humanAmt = amt > 0 ? -Math.abs(amt) : Math.abs(amt);
     if (transactionFilters.amount_min) {
@@ -257,6 +268,7 @@ export const Transactions = () => {
       const max = Number(transactionFilters.amount_max);
       if (Number.isFinite(max) && humanAmt > max) return false;
     }
+    */
     return true;
   });
 
@@ -477,10 +489,10 @@ export const Transactions = () => {
             >
               <Minus className="w-7 h-7" strokeWidth={3} />
             </button>
-            <div className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+            <div className="px-4 py-2 rounded-full text-sm font-medium border bg-blue-50 text-blue-700 border-blue-300">
               {chartDateRange.start}
             </div>
-            <div className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+            <div className="px-4 py-2 rounded-full text-sm font-medium border bg-blue-50 text-blue-700 border-blue-300">
               {chartDateRange.end}
             </div>
             <button
@@ -559,14 +571,6 @@ export const Transactions = () => {
                 <div className="absolute right-0 top-10 z-10 w-56 bg-white border border-gray-200 rounded-md shadow-lg p-3">
                   <div className="text-xs font-semibold text-gray-600 mb-2">Optional Columns</div>
                   <label className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-700">Payment Channel</span>
-                    <input
-                      type="checkbox"
-                      checked={!!transactionTableColumns?.payment_channel}
-                      onChange={(e) => setTransactionTableColumns({ payment_channel: e.target.checked })}
-                    />
-                  </label>
-                  <label className="flex items-center justify-between py-1">
                     <span className="text-sm text-gray-700">Detailed Category</span>
                     <input
                       type="checkbox"
@@ -585,7 +589,7 @@ export const Transactions = () => {
                   <div className="mt-3 flex items-center justify-between">
                     <button
                       className="text-xs text-gray-600 underline"
-                      onClick={() => setTransactionTableColumns({ payment_channel: false, detailed_category: false, pending: false })}
+                      onClick={() => setTransactionTableColumns({ detailed_category: false, pending: false })}
                     >
                       Reset to default
                     </button>
@@ -619,28 +623,41 @@ export const Transactions = () => {
           </div>
           {/* Filter Row */}
           <div className="border-b border-gray-200">
-            <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50">
-              <div className="col-span-2">
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium">Name</span>
+            <div className="p-4 bg-gray-50">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="w-64">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={transactionFilters.search}
+                    onChange={(e) => setTransactionFilters({ search: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={transactionFilters.search}
-                  onChange={(e) => setTransactionFilters({ search: e.target.value })}
-                  className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <FilterPill
+                  label="Account"
+                  options={(accounts || []).map(acc => ({ value: String(acc.id), label: String(acc.name || 'Unknown') }))}
+                  selected={Array.isArray(transactionFilters.accounts) ? transactionFilters.accounts : []}
+                  onChange={(next) => { setTransactionFilters({ accounts: next }); setCurrentPage(1); }}
+                  summary={(Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0) ? `${transactionFilters.accounts.length} selected` : 'All'}
                 />
-                <button
-                  onClick={() => { setTransactionFilters({ search: '' }); setCurrentPage(1); }}
-                  className="mt-2 text-xs text-gray-600 underline"
-                >
-                  Clear search
-                </button>
+                <FilterPill
+                  label="Primary Category"
+                  options={sortedCategoryOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                  selected={Array.isArray(transactionFilters.primary_categories) ? transactionFilters.primary_categories : []}
+                  onChange={(next) => { setTransactionFilters({ primary_categories: next }); setCurrentPage(1); }}
+                  summary={(Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0) ? `${transactionFilters.primary_categories.length} selected` : 'All'}
+                />
+                <FilterPill
+                  label="Month"
+                  options={monthOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                  selected={Array.isArray(transactionFilters.months) ? transactionFilters.months : []}
+                  onChange={(next) => { setTransactionFilters({ months: next }); setCurrentPage(1); }}
+                  summary={(Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0) ? `${transactionFilters.months.length} selected` : 'All'}
+                />
               </div>
               {transactionTableColumns?.payment_channel && (
-                <div className="col-span-1">
+                <div className="mt-3 w-52">
                   <span className="text-sm font-medium">Payment Channel</span>
                   <select
                     value={transactionFilters.payment_channel}
@@ -654,136 +671,8 @@ export const Transactions = () => {
                   </select>
                 </div>
               )}
-              
-              <div className="col-span-3">
-                <span className="text-sm font-medium">Account</span>
-                <div className="mt-2 flex items-center space-x-2">
-                  <select
-                    value={transactionFilters.account_op || 'in'}
-                    onChange={(e) => { setTransactionFilters({ account_op: e.target.value as any }); setCurrentPage(1); }}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                  >
-                    <option value="in">In</option>
-                    <option value="not_in">Not in</option>
-                  </select>
-                  <button
-                    onClick={() => setShowAccountPicker(v => !v)}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
-                  >
-                    {showAccountPicker ? 'Hide accounts' : 'Choose accounts'}
-                  </button>
-                </div>
-                <div className="mt-2 flex items-center space-x-3">
-                  <span className="text-xs text-gray-500">
-                    {Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0
-                      ? `${transactionFilters.accounts.length} selected (${transactionFilters.account_op || 'in'})`
-                      : 'All accounts'}
-                  </span>
-                  <button
-                    onClick={() => { setTransactionFilters({ accounts: [] }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Clear accounts
-                  </button>
-                  <button
-                    onClick={() => { setTransactionFilters({ accounts: (accounts || []).map(a => String(a.id)) }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Select all
-                  </button>
-                </div>
-                {showAccountPicker && (
-                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
-                    <div className="flex flex-wrap gap-2">
-                      {(accounts || []).map(acc => {
-                        const checked = Array.isArray(transactionFilters.accounts) ? transactionFilters.accounts.includes(String(acc.id)) : false;
-                        return (
-                          <label key={acc.id} className="inline-flex items-center space-x-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                const prev = Array.isArray(transactionFilters.accounts) ? [...transactionFilters.accounts] : [];
-                                const id = String(acc.id);
-                                const next = e.target.checked ? Array.from(new Set([...prev, id])) : prev.filter(v => v !== id);
-                                setTransactionFilters({ accounts: next });
-                                setCurrentPage(1);
-                              }}
-                            />
-                            <span>{acc.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="col-span-3">
-                <span className="text-sm font-medium">Primary Category</span>
-                <div className="mt-2 flex items-center space-x-2">
-                  <select
-                    value={transactionFilters.primary_category_op || 'in'}
-                    onChange={(e) => { setTransactionFilters({ primary_category_op: e.target.value as any }); setCurrentPage(1); }}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                  >
-                    <option value="in">In</option>
-                    <option value="not_in">Not in</option>
-                  </select>
-                  <button
-                    onClick={() => setShowCategoryPicker(v => !v)}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
-                  >
-                    {showCategoryPicker ? 'Hide categories' : 'Choose categories'}
-                  </button>
-                </div>
-                <div className="mt-2 flex items-center space-x-3">
-                  <span className="text-xs text-gray-500">
-                    {Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0
-                      ? `${transactionFilters.primary_categories.length} selected (${transactionFilters.primary_category_op || 'in'})`
-                      : 'All categories'}
-                  </span>
-                  <button
-                    onClick={() => { setTransactionFilters({ primary_categories: [] }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Clear categories
-                  </button>
-                  <button
-                    onClick={() => { setTransactionFilters({ primary_categories: PERSONAL_FINANCE_CATEGORY_OPTIONS.map(o => o.value) }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Select all
-                  </button>
-                </div>
-                {showCategoryPicker && (
-                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
-                    <div className="flex flex-wrap gap-2">
-                      {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => {
-                        const checked = Array.isArray(transactionFilters.primary_categories) ? transactionFilters.primary_categories.includes(opt.value) : false;
-                        return (
-                          <label key={opt.value} className="inline-flex items-center space-x-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                const prev = Array.isArray(transactionFilters.primary_categories) ? [...transactionFilters.primary_categories] : [];
-                                const val = opt.value;
-                                const next = e.target.checked ? Array.from(new Set([...prev, val])) : prev.filter(v => v !== val);
-                                setTransactionFilters({ primary_categories: next });
-                                setCurrentPage(1);
-                              }}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
               {transactionTableColumns?.detailed_category && (
-                <div className="col-span-2">
+                <div className="mt-3 w-64">
                   <span className="text-sm font-medium">Detailed Category</span>
                   <select
                     value={transactionFilters.detailed_category}
@@ -797,102 +686,6 @@ export const Transactions = () => {
                   </select>
                 </div>
               )}
-              
-              <div className="col-span-3">
-                <span className="text-sm font-medium">Month</span>
-                <div className="mt-2 flex items-center space-x-2">
-                  <select
-                    value={transactionFilters.month_op || 'in'}
-                    onChange={(e) => { setTransactionFilters({ month_op: e.target.value as any }); setCurrentPage(1); }}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                  >
-                    <option value="in">In</option>
-                    <option value="not_in">Not in</option>
-                  </select>
-                  <button
-                    onClick={() => setShowMonthPicker(v => !v)}
-                    className="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50"
-                  >
-                    {showMonthPicker ? 'Hide months' : 'Choose months'}
-                  </button>
-                </div>
-                <div className="mt-2 flex items-center space-x-3">
-                  <span className="text-xs text-gray-500">
-                    {Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0
-                      ? `${transactionFilters.months.length} selected (${transactionFilters.month_op || 'in'})`
-                      : 'All months'}
-                  </span>
-                  <button
-                    onClick={() => { setTransactionFilters({ months: [] }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Clear months
-                  </button>
-                  <button
-                    onClick={() => { setTransactionFilters({ months: monthOptions.map(o => o.value) }); setCurrentPage(1); }}
-                    className="text-xs text-gray-600 underline"
-                  >
-                    Select all
-                  </button>
-                </div>
-                {showMonthPicker && (
-                  <div className="mt-2 p-2 border border-gray-200 rounded-md bg-white">
-                    <div className="flex flex-wrap gap-2">
-                      {monthOptions.map(opt => {
-                        const checked = Array.isArray(transactionFilters.months) ? transactionFilters.months.includes(opt.value) : false;
-                        return (
-                          <label key={opt.value} className="inline-flex items-center space-x-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                const prev = Array.isArray(transactionFilters.months) ? [...transactionFilters.months] : [];
-                                const val = opt.value;
-                                const next = e.target.checked ? Array.from(new Set([...prev, val])) : prev.filter(v => v !== val);
-                                setTransactionFilters({ months: next });
-                                setCurrentPage(1);
-                              }}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="col-span-2">
-                <span className="text-sm font-medium">Amount Range</span>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={transactionFilters.amount_min}
-                    onChange={(e) => {
-                      setTransactionFilters({ amount_min: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={transactionFilters.amount_max}
-                    onChange={(e) => {
-                      setTransactionFilters({ amount_max: e.target.value });
-                      setCurrentPage(1);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
-                </div>
-                <button
-                  onClick={() => { setTransactionFilters({ amount_min: '', amount_max: '' }); setCurrentPage(1); }}
-                  className="mt-2 text-xs text-gray-600 underline"
-                >
-                  Clear amount range
-                </button>
-              </div>
             </div>
           </div>
           
@@ -1126,13 +919,11 @@ export const Transactions = () => {
         onClose={() => setIsEditOpen(false)}
         actions={(
           <>
-            <button
-              onClick={() => setIsEditOpen(false)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-            >
+            <PillButton variant="inactive" size="md" onClick={() => setIsEditOpen(false)}>
               Cancel
-            </button>
-            <button
+            </PillButton>
+            <PillButton
+              size="md"
               onClick={async () => {
                 if (!editTx) return;
                 try {
@@ -1170,10 +961,9 @@ export const Transactions = () => {
                   toast.error('Failed to update transaction');
                 }
               }}
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
             >
               Save
-            </button>
+            </PillButton>
           </>
         )}
       >

@@ -59,7 +59,8 @@ export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseC
           <Tooltip content={<CustomTooltip />} />
           <Legend 
             wrapperStyle={{ paddingTop: '20px' }}
-            iconType="rect"
+            iconType="circle"
+            formatter={(value) => <span style={{ color: '#000' }}>{value}</span>}
           />
           <Bar 
             dataKey="income" 

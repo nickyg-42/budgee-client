@@ -291,7 +291,7 @@ export const AdminDashboard = () => {
               <button
                 onClick={onUpdateWebhooks}
                 disabled={updatingWebhooks}
-                className={`px-4 py-2 rounded-md text-sm ${updatingWebhooks ? 'bg-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}
+                className={`px-4 py-2 rounded-full border text-sm ${updatingWebhooks ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
               >
                 {updatingWebhooks ? 'Updating...' : 'Update Webhooks'}
               </button>
@@ -310,7 +310,7 @@ export const AdminDashboard = () => {
                 <button
                   onClick={onClearTransactionsCache}
                   disabled={clearingTxn}
-                  className={`px-3 py-1 rounded-md text-xs ${clearingTxn ? 'bg-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}
+                  className={`px-3 py-1 rounded-full border text-xs ${clearingTxn ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
                 >
                   {clearingTxn ? 'Clearing...' : 'Clear Cache'}
                 </button>
@@ -320,7 +320,7 @@ export const AdminDashboard = () => {
                 <button
                   onClick={onClearItemsCache}
                   disabled={clearingItems}
-                  className={`px-3 py-1 rounded-md text-xs ${clearingItems ? 'bg-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}
+                  className={`px-3 py-1 rounded-full border text-xs ${clearingItems ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
                 >
                   {clearingItems ? 'Clearing...' : 'Clear Cache'}
                 </button>
@@ -330,7 +330,7 @@ export const AdminDashboard = () => {
                 <button
                   onClick={onClearAccountsCache}
                   disabled={clearingAccounts}
-                  className={`px-3 py-1 rounded-md text-xs ${clearingAccounts ? 'bg-gray-200 text-gray-600' : 'bg-blue-600 text-white'}`}
+                  className={`px-3 py-1 rounded-full border text-xs ${clearingAccounts ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
                 >
                   {clearingAccounts ? 'Clearing...' : 'Clear Cache'}
                 </button>
@@ -538,7 +538,7 @@ export const AdminDashboard = () => {
               <span className="text-sm text-gray-600">Whitelisted Emails</span>
               <div className="flex items-center space-x-3">
                 <button
-                  className="inline-flex items-center px-3 py-1 rounded-md bg-blue-600 text-white text-xs"
+                  className="inline-flex items-center px-3 py-1 rounded-full border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 text-xs"
                   onClick={() => setAddEmailOpen(true)}
                 >
                   <Plus className="w-3 h-3 mr-1" />
@@ -627,14 +627,14 @@ export const AdminDashboard = () => {
           <>
             <button
               onClick={() => setEditOpen(false)}
-              className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white text-xs"
+              className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 bg-white text-xs hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               onClick={saveEdit}
               disabled={savingUser}
-              className={`px-3 py-1 rounded-md text-white text-xs ${savingUser ? 'bg-gray-300' : 'bg-blue-600'}`}
+              className={`px-3 py-1 rounded-full border text-xs ${savingUser ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
             >
               {savingUser ? 'Saving...' : 'Save'}
             </button>
@@ -690,14 +690,14 @@ export const AdminDashboard = () => {
           <>
             <button
               onClick={() => setAddEmailOpen(false)}
-              className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white text-xs"
+              className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 bg-white text-xs hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               onClick={onAddEmail}
               disabled={savingEmail}
-              className={`px-3 py-1 rounded-md text-white text-xs ${savingEmail ? 'bg-gray-300' : 'bg-blue-600'}`}
+              className={`px-3 py-1 rounded-full border text-xs ${savingEmail ? 'bg-gray-200 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'}`}
             >
               {savingEmail ? 'Saving...' : 'Save'}
             </button>

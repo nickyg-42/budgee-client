@@ -240,6 +240,8 @@ export const Profile = () => {
                       if (s.startsWith('monochrome:')) return 'Monochrome';
                       if (s === 'earth') return 'Earth';
                       if (s === 'pastel') return 'Pastel';
+                      if (s === 'slate') return 'Slate';
+                      if (s === 'aurora') return 'Aurora';
                       return 'Default';
                     })()}
                   </p>
@@ -277,7 +279,7 @@ export const Profile = () => {
         <>
           <button
             onClick={() => setIsEditOpen(false)}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
           >
             Cancel
           </button>
@@ -298,7 +300,7 @@ export const Profile = () => {
                 toast.error('Failed to update profile');
               }
             }}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-full border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100"
           >
             Save
           </button>
@@ -344,7 +346,7 @@ export const Profile = () => {
         <>
           <button
             onClick={() => setIsThemeOpen(false)}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
           >
             Close
           </button>
@@ -489,7 +491,7 @@ export const Profile = () => {
         <>
           <button
             onClick={() => setIsPasswordOpen(false)}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
           >
             Cancel
           </button>
@@ -504,7 +506,7 @@ export const Profile = () => {
                 toast.error('Failed to change password');
               }
             }}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-full border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100"
           >
             Save
           </button>

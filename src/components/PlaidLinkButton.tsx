@@ -88,7 +88,7 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
       <button
         onClick={() => open()}
         disabled={isLoading || !ready || !token}
-        className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
+        className="inline-flex items-center px-4 py-2 rounded-full border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed space-x-2"
       >
         {isLoading ? (
           <>
@@ -134,7 +134,7 @@ export const PlaidLinkButton = ({ onSuccess, onExit }: PlaidLinkButtonProps) => 
     <button
       onClick={handleClick}
       disabled={isLoading}
-      className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
+      className="inline-flex items-center px-4 py-2 rounded-full border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed space-x-2"
     >
       {isLoading ? (
         <>

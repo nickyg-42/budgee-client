@@ -9,6 +9,7 @@ import { apiService } from '../services/api';
 import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor, monthLabel, formatYMD } from '../utils/formatters';
 import { getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { PiggyBank, Calendar, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { PillButton } from '../components/ui/PillButton';
 import { toast } from 'sonner';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -352,18 +353,20 @@ export const Dashboard = () => {
                 {chartMode === 'months' ? 'Last 6 months' : 'Last 5 years'}
               </div>
               <div className="flex items-center space-x-2">
-                <button
-                  className={`px-3 py-1 rounded-md border text-sm ${chartMode === 'months' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                <PillButton
+                  size="sm"
+                  variant={chartMode === 'months' ? 'active' : 'inactive'}
                   onClick={() => setChartMode('months')}
                 >
                   Months
-                </button>
-                <button
-                  className={`px-3 py-1 rounded-md border text-sm ${chartMode === 'years' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                </PillButton>
+                <PillButton
+                  size="sm"
+                  variant={chartMode === 'years' ? 'active' : 'inactive'}
                   onClick={() => setChartMode('years')}
                 >
                   Years
-                </button>
+                </PillButton>
               </div>
             </div>
           </CardHeader>
@@ -410,8 +413,8 @@ export const Dashboard = () => {
       </div> */}
       
       {/* Yearly Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
+        <Card className="self-start">
           <CardHeader>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Monthly Income</span>
@@ -476,6 +479,17 @@ export const Dashboard = () => {
                         </tr>
                       )}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50">
+                        <td className="px-3 py-2 text-sm font-semibold text-gray-900">Total</td>
+                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-sm font-semibold text-right">
+                          <span className="font-bold" style={{ color: semantic.good }}>
+                            {formatCurrency(currentMonthStats.income)}
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
           </CardContent>

@@ -13,6 +13,7 @@ interface AppState {
   // UI State
   isLoading: boolean;
   error: string | null;
+  sidebarCollapsedDesktop: boolean;
   
   // Filters
   transactionFilters: FilterOptions;
@@ -35,6 +36,7 @@ interface AppState {
   setTransactionFilters: (filters: Partial<FilterOptions>) => void;
   resetFilters: () => void;
   setTransactionTableColumns: (update: Partial<AppState['transactionTableColumns']>) => void;
+  setSidebarCollapsedDesktop: (collapsed: boolean) => void;
 }
 
 const initialFilters: FilterOptions = (() => {
@@ -55,11 +57,8 @@ const initialFilters: FilterOptions = (() => {
     amount_min: '',
     amount_max: '',
     accounts: [],
-    account_op: 'in',
     primary_categories: [],
-    primary_category_op: 'in',
     months: [currentMonth],
-    month_op: 'in',
   };
 })();
 
@@ -85,6 +84,17 @@ function loadColumnsConfig(): typeof defaultColumnsConfig {
   return defaultColumnsConfig;
 }
 
+function loadSidebarCollapsedDesktop(): boolean {
+  try {
+    if (typeof window !== 'undefined') {
+      const raw = window.localStorage.getItem('sidebarCollapsedDesktop');
+      if (raw === 'true') return true;
+      if (raw === 'false') return false;
+    }
+  } catch (_) {}
+  return false;
+}
+
 export const useAppStore = create<AppState>((set) => ({
   // Initial state
   transactions: [],
@@ -97,6 +107,7 @@ export const useAppStore = create<AppState>((set) => ({
   error: null,
   transactionFilters: initialFilters,
   transactionTableColumns: loadColumnsConfig(),
+  sidebarCollapsedDesktop: loadSidebarCollapsedDesktop(),
 
   // Actions
   setTransactions: (transactions) => set({ transactions }),
@@ -119,5 +130,13 @@ export const useAppStore = create<AppState>((set) => ({
       }
     } catch (_) {}
     return { transactionTableColumns: next };
+  }),
+  setSidebarCollapsedDesktop: (collapsed) => set(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('sidebarCollapsedDesktop', collapsed ? 'true' : 'false');
+      }
+    } catch (_) {}
+    return { sidebarCollapsedDesktop: collapsed };
   }),
 }));

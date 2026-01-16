@@ -85,11 +85,8 @@ export interface FilterOptions {
   amount_min: string;
   amount_max: string;
   accounts?: string[];
-  account_op?: 'in' | 'not_in';
   primary_categories?: string[];
-  primary_category_op?: 'in' | 'not_in';
   months?: string[];
-  month_op?: 'in' | 'not_in';
 }
 
 export interface User {
