@@ -10,6 +10,7 @@ import { formatCurrency, formatPercentage, formatShortDate, getCategoryColor, mo
 import { getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { PiggyBank, Calendar, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { PillButton } from '../components/ui/PillButton';
+import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { toast } from 'sonner';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -232,7 +233,7 @@ export const Dashboard = () => {
                   <PiggyBank className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Savings Rate</span>
                 </div>
-                <div className="text-3xl font-bold mb-1" style={{ color: currentMonthStats.savings >= 0 ? semantic.good : semantic.bad }}>
+                <div className="text-3xl font-bold mb-1 text-black">
                   {formatPercentage(currentMonthStats.savings_rate)}
                 </div>
                 <p className="text-sm text-gray-600">
@@ -255,14 +256,14 @@ export const Dashboard = () => {
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Expenses</span>
                 </div>
-                <div className="text-3xl font-bold mb-1" style={{ color: semantic.bad }}>
+                <div className="text-3xl font-bold mb-1 text-black">
                   {formatCurrency(currentMonthStats.expenses)}
                 </div>
-                <div className="flex items-center text-sm mb-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }}>
+                <div className={`flex items-center text-sm mb-1 ${expenseChangeValue > 0 ? 'text-green-600' : 'text-black'}`}>
                   {expenseChangeValue > 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }} />
+                    <TrendingUp className="w-4 h-4 mr-1" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" style={{ color: expenseChangeValue > 0 ? semantic.bad : semantic.good }} />
+                    <TrendingDown className="w-4 h-4 mr-1" />
                   )}
                   {expenseChange}
                 </div>
@@ -282,14 +283,14 @@ export const Dashboard = () => {
                   <Calendar className="w-5 h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Income</span>
                 </div>
-                <div className="text-3xl font-bold mb-1" style={{ color: semantic.good }}>
-                  {formatCurrency(currentMonthStats.income)}
+                <div className="text-3xl font-bold mb-1 text-green-600">
+                  {`+${formatCurrency(currentMonthStats.income)}`}
                 </div>
-                <div className="flex items-center text-sm mb-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }}>
-                  {incomeChangeValue >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }} />
+                <div className={`flex items-center text-sm mb-1 ${incomeChangeValue > 0 ? 'text-green-600' : 'text-black'}`}>
+                  {incomeChangeValue > 0 ? (
+                    <TrendingUp className="w-4 h-4 mr-1" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" style={{ color: incomeChangeValue >= 0 ? semantic.good : semantic.bad }} />
+                    <TrendingDown className="w-4 h-4 mr-1" />
                   )}
                   {incomeChange}
                 </div>
@@ -308,15 +309,15 @@ export const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Monthly Spending Breakdown</span>
-              <select
+              <MinimalSelect
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className="w-auto"
               >
                 {monthOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
-              </select>
+              </MinimalSelect>
             </div>
           </CardHeader>
           <CardContent>
@@ -466,9 +467,9 @@ export const Dashboard = () => {
                             <div className="text-sm font-medium text-gray-900">{String((t as any).name || (t as any).merchant_name || 'Unknown')}</div>
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-600">{formatYMD(String((t as any).date || ''))}</td>
-                          <td className="px-3 py-2 text-sm font-semibold text-gray-900 text-right">
-                            <span className="font-bold" style={{ color: semantic.good }}>
-                              {formatCurrency(Math.abs(Number((t as any).amount || 0)))}
+                          <td className="px-3 py-2 text-sm font-semibold text-green-600 text-right">
+                            <span className="font-bold">
+                              {`+${formatCurrency(Math.abs(Number((t as any).amount || 0)))}`}
                             </span>
                           </td>
                         </tr>
@@ -483,9 +484,9 @@ export const Dashboard = () => {
                       <tr className="bg-gray-50">
                         <td className="px-3 py-2 text-sm font-semibold text-gray-900">Total</td>
                         <td className="px-3 py-2"></td>
-                        <td className="px-3 py-2 text-sm font-semibold text-right">
-                          <span className="font-bold" style={{ color: semantic.good }}>
-                            {formatCurrency(currentMonthStats.income)}
+                        <td className="px-3 py-2 text-sm font-semibold text-right text-green-600">
+                          <span className="font-bold">
+                            {`+${formatCurrency(currentMonthStats.income)}`}
                           </span>
                         </td>
                       </tr>

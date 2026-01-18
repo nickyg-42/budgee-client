@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { apiService } from '../services/api';
 import { Modal } from '../components/ui/Modal';
 import { toast } from 'sonner';
@@ -347,13 +348,14 @@ export const AdminDashboard = () => {
               <span className="text-sm text-gray-600">Users</span>
               <div className="flex items-center space-x-3">
                 <label className="text-xs text-gray-700">Rows per page</label>
-                <select
-                  value={userPageSize}
+                <MinimalSelect
+                  size="sm"
+                  value={String(userPageSize)}
                   onChange={(e) => setUserPageSize(Number(e.target.value))}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  className="w-auto"
                 >
                   {[10,25,50,100].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </MinimalSelect>
                 <div className="text-xs text-gray-700">
                   Page <span className="font-bold">{userPage}</span> of <span className="font-bold">{totalUserPages}</span>
                 </div>
@@ -460,13 +462,14 @@ export const AdminDashboard = () => {
               <span className="text-sm text-gray-600">Plaid Items</span>
               <div className="flex items-center space-x-3">
                 <label className="text-xs text-gray-700">Rows per page</label>
-                <select
-                  value={itemPageSize}
+                <MinimalSelect
+                  size="sm"
+                  value={String(itemPageSize)}
                   onChange={(e) => setItemPageSize(Number(e.target.value))}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  className="w-auto"
                 >
                   {[10,25,50,100].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </MinimalSelect>
                 <div className="text-xs text-gray-700">
                   Page <span className="font-bold">{itemPage}</span> of <span className="font-bold">{totalItemPages}</span>
                 </div>
@@ -545,13 +548,14 @@ export const AdminDashboard = () => {
                   Add
                 </button>
                 <label className="text-xs text-gray-700">Rows per page</label>
-                <select
-                  value={wlPageSize}
+                <MinimalSelect
+                  size="sm"
+                  value={String(wlPageSize)}
                   onChange={(e) => setWlPageSize(Number(e.target.value))}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  className="w-auto"
                 >
                   {[10,25,50,100].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                </MinimalSelect>
                 <div className="text-xs text-gray-700">
                   Page <span className="font-bold">{wlPage}</span> of <span className="font-bold">{totalWlPages}</span>
                 </div>

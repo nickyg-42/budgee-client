@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ConditionsBuilder } from '../components/transactionRules/ConditionsBuilder';
 import type { TransactionRule, ConditionNode, ConditionGroup, ConditionLeaf } from '../types';
 import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { Plus, Pencil, Trash2, PlayCircle, HelpCircle } from 'lucide-react';
 import { PillButton } from '../components/ui/PillButton';
 import { formatDateTimeLocal } from '@/utils/formatters';
@@ -340,15 +341,14 @@ export const TransactionRules = () => {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Category</label>
-              <select
+              <MinimalSelect
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
                 {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
-              </select>
+              </MinimalSelect>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Conditions</label>

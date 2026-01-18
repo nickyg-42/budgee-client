@@ -10,6 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { FilterPill } from '../components/ui/FilterPill';
 import { PillButton } from '../components/ui/PillButton';
+import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getDetailedCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
@@ -21,7 +22,7 @@ export const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(25);
-  const [chartMonths, setChartMonths] = useState(2);
+  const [chartMonths, setChartMonths] = useState(6);
   const initRef = useRef(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editTx, setEditTx] = useState<any | null>(null);
@@ -337,9 +338,16 @@ export const Transactions = () => {
       id: 'amount',
       label: 'Amount',
       render: (transaction: any) => (
-        <span className="text-sm font-bold" style={{ color: asNumber(transaction.amount) < 0 ? semantic.good : semantic.bad }}>
-          {formatCurrency(asNumber(transaction.amount) > 0 ? -Math.abs(asNumber(transaction.amount)) : Math.abs(asNumber(transaction.amount)))}
-        </span>
+        (() => {
+          const amt = asNumber(transaction.amount);
+          const income = isIncomeFlag(transaction);
+          const display = formatCurrency(Math.abs(amt));
+          return (
+            <span className={`text-sm font-bold ${income ? 'text-green-600' : 'text-black'}`}>
+              {income ? `+${display}` : display}
+            </span>
+          );
+        })()
       ),
     },
     {
@@ -510,21 +518,21 @@ export const Transactions = () => {
             <IncomeExpenseChart data={chartDataWindow} />
           </div>
           
-          <Card>
+          <Card className="self-start">
             <CardContent className="p-6">
               
               <div className="space-y-4">
                 <div>
                   <p className="text-base font-semibold text-gray-700">Cash Flow</p>
-                  <p className="text-4xl font-extrabold" style={{ color: summaryTotals.cashFlow >= 0 ? semantic.good : semantic.bad }}>{formatCurrency(summaryTotals.cashFlow)}</p>
+                  <p className="text-4xl font-extrabold text-black">{formatCurrency(summaryTotals.cashFlow)}</p>
                 </div>
                 <div>
                   <p className="text-base font-semibold text-gray-700">Income</p>
-                  <p className="text-4xl font-extrabold" style={{ color: semantic.good }}>{formatCurrency(summaryTotals.income)}</p>
+                  <p className="text-4xl font-extrabold text-green-600">{`+${formatCurrency(summaryTotals.income)}`}</p>
                 </div>
                 <div>
                   <p className="text-base font-semibold text-gray-700">Expenses</p>
-                  <p className="text-4xl font-extrabold" style={{ color: semantic.bad }}>{formatCurrency(summaryTotals.expenses)}</p>
+                  <p className="text-4xl font-extrabold text-black">{formatCurrency(summaryTotals.expenses)}</p>
                 </div>
                 <div className="pt-2 border-t border-gray-200">
                   <p className="text-sm text-gray-600">{filteredTransactions.length < totalTransactionsCount ? `From ${filteredTransactions.length} transactions (filtered)` : 'From all transactions'}</p>
@@ -548,16 +556,17 @@ export const Transactions = () => {
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">Rows per page</span>
-              <select
-                value={pageSize}
+              <MinimalSelect
+                size="sm"
+                value={String(pageSize)}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                className="w-auto"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
-              </select>
+              </MinimalSelect>
               <span className="text-sm text-gray-600">out of {filteredTransactions.length}</span>
             </div>
             <div className="flex items-center space-x-2 relative">

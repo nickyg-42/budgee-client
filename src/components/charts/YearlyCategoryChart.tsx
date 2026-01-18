@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CategoryChart } from './CategoryChart';
 import { Transaction } from '../../types';
+import { MinimalSelect } from '../ui/MinimalSelect';
 
 interface YearlyCategoryChartProps {
   transactions?: Transaction[];
@@ -63,17 +64,17 @@ export const YearlyCategoryChart = ({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between pb-2 mb-2">
         <span className="text-sm text-gray-600">{title}</span>
-        <select
+        <MinimalSelect
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+          className="w-auto"
         >
           {yearOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
-        </select>
+        </MinimalSelect>
       </div>
       <CategoryChart
         data={data as any}
@@ -84,4 +85,3 @@ export const YearlyCategoryChart = ({
     </div>
   );
 };
-

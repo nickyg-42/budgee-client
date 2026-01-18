@@ -33,7 +33,7 @@ export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseC
             <span className="inline-block w-3 h-3 mr-2 align-middle" style={{ backgroundColor: semantic.bad }} />
             Expenses: {formatCurrency(expenses)}
           </div>
-          <div className="text-sm font-semibold" style={{ color: cashFlow >= 0 ? semantic.good : semantic.bad }}>
+          <div className="text-sm font-semibold text-black">
             Cash Flow: {formatCurrency(cashFlow)}
           </div>
         </div>
@@ -44,7 +44,7 @@ export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseC
     <div className="w-full" style={{ height }}>
       {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barCategoryGap="40%" barGap={2}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 
             dataKey="month" 
@@ -67,12 +67,14 @@ export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseC
             fill={semantic.good} 
             name="Income"
             radius={[10, 10, 0, 0]}
+            barSize={12}
           />
           <Bar 
             dataKey="expenses" 
             fill={semantic.bad} 
             name="Expenses"
             radius={[10, 10, 0, 0]}
+            barSize={12}
           />
         </BarChart>
       </ResponsiveContainer>

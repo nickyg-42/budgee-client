@@ -3,6 +3,7 @@ import { Card, CardContent } from '../ui/Card';
 import type { ConditionNode, ConditionGroup, ConditionLeaf, TransactionRuleField, StringOperator, NumberOperator } from '../../types';
 import { cn } from '../../utils/cn';
 import { X, PlusCircle, FolderTree, ListFilter } from 'lucide-react';
+import { MinimalSelect } from '../ui/MinimalSelect';
 
 interface ConditionsBuilderProps {
   value: ConditionNode;
@@ -81,15 +82,16 @@ const GroupEditor = ({ node, onChange, disabled }: { node: ConditionGroup; onCha
   return (
     <div className="space-y-3">
       <div className="flex items-center space-x-2">
-        <select
-          className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+        <MinimalSelect
+          size="sm"
           value={op}
           onChange={(e) => setOp(e.target.value as 'and' | 'or')}
           disabled={disabled}
+          className="w-auto"
         >
           <option value="and">AND group</option>
           <option value="or">OR group</option>
-        </select>
+        </MinimalSelect>
         <button
           type="button"
           onClick={addLeaf}
@@ -159,8 +161,9 @@ const LeafEditor = ({ node, onChange, disabled }: { node: ConditionLeaf; onChang
 
   return (
     <div className="flex items-center space-x-2 w-full">
-      <select
-        className="border border-gray-300 rounded-md px-2 py-1 text-sm flex-shrink-0"
+      <MinimalSelect
+        size="sm"
+        className="w-auto"
         value={node.field}
         onChange={(e) => setField(e.target.value as TransactionRuleField)}
         disabled={disabled}
@@ -168,9 +171,10 @@ const LeafEditor = ({ node, onChange, disabled }: { node: ConditionLeaf; onChang
         {(['name','merchant_name','amount','account'] as TransactionRuleField[]).map(f => (
           <option key={f} value={f}>{f}</option>
         ))}
-      </select>
-      <select
-        className="border border-gray-300 rounded-md px-2 py-1 text-sm flex-shrink-0"
+      </MinimalSelect>
+      <MinimalSelect
+        size="sm"
+        className="w-auto"
         value={node.op as string}
         onChange={(e) => setOp(e.target.value as any)}
         disabled={disabled}
@@ -179,7 +183,7 @@ const LeafEditor = ({ node, onChange, disabled }: { node: ConditionLeaf; onChang
           const label = fieldIsString ? o : numberOpLabels[o as NumberOperator];
           return <option key={o} value={o}>{label}</option>;
         })}
-      </select>
+      </MinimalSelect>
       {node.op === 'in' ? (
         <input
           type="text"

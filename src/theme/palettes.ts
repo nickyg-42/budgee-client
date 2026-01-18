@@ -12,7 +12,7 @@ import { ThemePalette } from './types';
 export const earthPalette: ThemePalette = {
   semantic: {
     good: '#2f6f55',     // muted forest green
-    bad: '#8c3a2b',      // clay red
+    bad: '#74a792ff',      // clay red
     warn: '#b0893f',     // warm ochre
     neutral: '#8a8f85',  // soft stone gray
   },
@@ -26,24 +26,24 @@ export const earthPalette: ThemePalette = {
 };
 
 const earthColorMap: Record<PersonalFinanceCategory, string> = {
-  INCOME: '#2f6f55',
-  LOAN_DISBURSEMENTS: '#4a7c7a',
-  LOAN_PAYMENTS: '#8c3a2b',
-  TRANSFER_IN: '#3a6f5c',
-  TRANSFER_OUT: '#4b5563',
-  BANK_FEES: '#7a4a1d',
-  ENTERTAINMENT: '#7c4a4a',
-  FOOD_AND_DRINK: '#a36a2d',
-  GENERAL_MERCHANDISE: '#6b7c3a',
-  HOME_IMPROVEMENT: '#8b5a2b',
-  MEDICAL: '#3d6f63',
-  PERSONAL_CARE: '#5c6f3a',
-  GENERAL_SERVICES: '#4a7c7a',
-  GOVERNMENT_AND_NON_PROFIT: '#445a7c',
-  TRANSPORTATION: '#8b5a2b',
-  TRAVEL: '#3a6f5c',
-  RENT_AND_UTILITIES: '#7a3f2b',
-  OTHER: '#6b7280',
+  INCOME: '#2F6F55',
+  LOAN_DISBURSEMENTS: '#2C7A7B',
+  LOAN_PAYMENTS: '#B65C4E',
+  TRANSFER_IN: '#3A6F5C',
+  TRANSFER_OUT: '#5B6B7A',
+  BANK_FEES: '#B0893F',
+  ENTERTAINMENT: '#A05A5A',
+  FOOD_AND_DRINK: '#C49A6C',
+  GENERAL_MERCHANDISE: '#6B8E23',
+  HOME_IMPROVEMENT: '#8B5A2B',
+  MEDICAL: '#3D6F63',
+  PERSONAL_CARE: '#7D8E6A',
+  GENERAL_SERVICES: '#2C7A7B',
+  GOVERNMENT_AND_NON_PROFIT: '#445A7C',
+  TRANSPORTATION: '#A0622B',
+  TRAVEL: '#3A6F5C',
+  RENT_AND_UTILITIES: '#7A3F2B',
+  OTHER: '#6B7280',
 };
 
 /* =========================
@@ -51,30 +51,30 @@ const earthColorMap: Record<PersonalFinanceCategory, string> = {
    ========================= */
 
 const pastelColorMap: Record<PersonalFinanceCategory, string> = {
-  INCOME: '#c7e7d8',
-  LOAN_DISBURSEMENTS: '#cfe4f2',
-  LOAN_PAYMENTS: '#ddd6f3',
-  TRANSFER_IN: '#c9eef0',
-  TRANSFER_OUT: '#d4daf1',
-  BANK_FEES: '#e6d8f0',
-  ENTERTAINMENT: '#f2cfd6',
-  FOOD_AND_DRINK: '#f3e2a6',
-  GENERAL_MERCHANDISE: '#d6e4f5',
-  HOME_IMPROVEMENT: '#ecd9a2',
-  MEDICAL: '#d2ebe2',
-  PERSONAL_CARE: '#d9eaf3',
-  GENERAL_SERVICES: '#d1eff1',
-  GOVERNMENT_AND_NON_PROFIT: '#cfe4f2',
-  TRANSPORTATION: '#ecd9a2',
-  TRAVEL: '#d2ebe2',
-  RENT_AND_UTILITIES: '#f0d2b8',
-  OTHER: '#e5e7eb',
+  INCOME: '#B8E0D2',                     // mint green
+  LOAN_DISBURSEMENTS: '#A7C7E7',         // pastel blue
+  LOAN_PAYMENTS: '#F7B2B7',              // soft rose
+  TRANSFER_IN: '#A8DADC',                // pastel teal
+  TRANSFER_OUT: '#CDB4DB',               // lavender
+  BANK_FEES: '#FAD4AF',                  // peach
+  ENTERTAINMENT: '#F8C8DC',              // pink
+  FOOD_AND_DRINK: '#FDE49E',             // pastel yellow
+  GENERAL_MERCHANDISE: '#BFD7EA',        // powder blue
+  HOME_IMPROVEMENT: '#F7C59F',           // apricot
+  MEDICAL: '#F5E6CC',                    // soft mint
+  PERSONAL_CARE: '#E9D5FF',              // lilac
+  GENERAL_SERVICES: '#E0FBFC',           // ice
+  GOVERNMENT_AND_NON_PROFIT: '#CDE7FB',  // baby blue
+  TRANSPORTATION: '#F8D5A3',             // pastel orange
+  TRAVEL: '#BEE3DB',                     // seafoam
+  RENT_AND_UTILITIES: '#CDEDE0',         // warm beige
+  OTHER: '#E5E7EB',                      // light gray
 };
 
 export const pastelPalette: ThemePalette = {
   semantic: {
-    good: '#7fbfa0',
-    bad: '#e08a94',
+    good: '#B795E4',
+    bad: '#dccdf0ff',
     warn: '#e2c76f',
     neutral: '#9ca3af',
   },
@@ -97,9 +97,9 @@ const defaultColorMap: Record<PersonalFinanceCategory, string> = {
 
 export const defaultPalette: ThemePalette = {
   semantic: {
-    good: '#22a06b',    // refined green
-    bad: '#d64545',     // less harsh red
-    warn: '#e0a21a',    // warm amber
+    good: '#2563eb',    
+    bad: '#93c5fd',     
+    warn: '#e0a21a',    
     neutral: '#6b7280',
   },
   progress: {
@@ -117,8 +117,8 @@ export const defaultPalette: ThemePalette = {
 
 export const slatePalette: ThemePalette = {
   semantic: {
-    good: '#3f8f7a',     // cool teal-green
-    bad: '#c94a4a',      // muted crimson
+    good: '#2D1E3A',     // cool teal-green
+    bad: '#746780ff',      // muted crimson
     warn: '#c08a2e',     // subdued amber
     neutral: '#64748b',  // slate gray
   },
@@ -158,8 +158,8 @@ const slateColorMap: Record<PersonalFinanceCategory, string> = {
 
 export const auroraPalette: ThemePalette = {
   semantic: {
-    good: '#4db6ac',     // soft teal
-    bad: '#e57373',      // gentle coral red
+    good: '#faa2d5',     // soft teal
+    bad: '#f8d9ebff',      // gentle coral red
     warn: '#f2c94c',     // warm soft yellow
     neutral: '#8b95a1',  // cool gray-blue
   },
@@ -212,4 +212,3 @@ export const getStaticPalette = (
     return { ...auroraPalette, categories: { ...auroraColorMap } };
   return defaultPalette;
 };
-

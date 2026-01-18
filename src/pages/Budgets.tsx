@@ -8,6 +8,7 @@ import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_
 import { formatCurrency, formatDate, monthLabel } from '../utils/formatters';
 import { Plus, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { PillButton } from '../components/ui/PillButton';
+import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
 import { CategoryChart } from '../components/charts/CategoryChart';
@@ -27,7 +28,17 @@ const BUDGET_CATEGORY_OPTIONS = PERSONAL_FINANCE_CATEGORY_OPTIONS.filter(
 
 export const Budgets = () => {
   const { transactions, setTransactions, setAccounts, setPlaidItems } = useAppStore();
-  const { progress } = useTheme();
+  const { progress, semantic } = useTheme();
+  const lightenWithWhite = (hex: string, t: number) => {
+    const h = String(hex || '').replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    const R = Math.round(r + (255 - r) * t);
+    const G = Math.round(g + (255 - g) * t);
+    const B = Math.round(b + (255 - b) * t);
+    return `rgb(${R}, ${G}, ${B})`;
+  };
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -254,31 +265,17 @@ export const Budgets = () => {
               <span className="text-sm font-semibold text-gray-800">Monthly Budgets</span>
               <div className="flex items-center space-x-3">
               <span className="text-xs text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
-                <select
+                <MinimalSelect
+                  size="sm"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-2 py-1 border border-gray-300 rounded-md text-xs"
+                  className="w-auto"
                 >
                   {monthOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
-                </select>
-                <button
-                  onClick={expandAll}
-                  className="inline-flex items-center px-2 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-xs"
-                  title="Expand all budgets"
-                >
-                  <ChevronDown className="w-3 h-3 mr-1" />
-                  Expand all
-                </button>
-                <button
-                  onClick={collapseAll}
-                  className="inline-flex items-center px-2 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-xs"
-                  title="Collapse all budgets"
-                >
-                  <ChevronUp className="w-3 h-3 mr-1" />
-                  Collapse all
-                </button>
+                </MinimalSelect>
+                {/* Removed expand/collapse all controls */}
               </div>
             </div>
           </CardHeader>
@@ -295,7 +292,8 @@ export const Budgets = () => {
                 const ratio = amt > 0 ? spent / amt : 0;
                 const fillPct = Math.min(100, Math.round(ratio * 100));
                 const over = spent > amt;
-                const color = over ? progress.over : getBarColor(fillPct);
+                const color = semantic.good;
+                const light = lightenWithWhite(semantic.good, 0.6);
                 const txns = (transactions || []).filter((t: any) => {
                   const v: any = (t as Transaction).date;
                   const txm = String(v || '').slice(0, 7);
@@ -311,19 +309,6 @@ export const Budgets = () => {
                           <PersonalFinanceIcon category={String(b.personal_finance_category)} size={20} className="mr-3 mt-0.5" />
                           <div className="flex flex-col">
                             <div className="text-sm font-semibold text-gray-900">{getCategoryLabelFromConstants(String(b.personal_finance_category))}</div>
-                            <div className="text-xs text-gray-700">
-                              <span className="font-bold">Allotted:</span> <span>{formatCurrency(amt)}</span> •{' '}
-                              <span className="font-bold">Spent:</span> <span>{formatCurrency(spent)}</span> •{' '}
-                              {amt - spent >= 0 ? (
-                                <>
-                                  <span className="font-bold">Remaining:</span> <span>{formatCurrency(amt - spent)}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="font-bold text-red-600">Over:</span> <span className="text-red-600">{formatCurrency(spent - amt)}</span>
-                                </>
-                              )}
-                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -336,37 +321,16 @@ export const Budgets = () => {
                         </div>
                       </div>
                       <div className="relative h-5 bg-gray-100 rounded-lg mb-2">
-                        <div className="h-full rounded-lg" style={{ width: `${fillPct}%`, backgroundColor: color }}></div>
+                        <div
+                          className="h-full rounded-lg"
+                          style={{ width: `${fillPct}%`, backgroundImage: `linear-gradient(90deg, ${light} 0%, ${color} 100%)` }}
+                        ></div>
                       </div>
-                      <div className="mt-1">
-                        <button
-                          className="text-gray-700 hover:text-gray-900 flex items-center text-xs font-medium"
-                          onClick={() => setExpanded(prev => ({ ...prev, [Number(b.id)]: !prev[Number(b.id)] }))}
-                          title={expanded[Number(b.id)] ? 'Hide expenses' : 'Show expenses'}
-                        >
-                          {expanded[Number(b.id)] ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
-                          {expanded[Number(b.id)] ? 'Hide expenses' : `Show expenses (${txns.length})`}
-                        </button>
+                      <div className="mt-2 text-sm text-gray-800">
+                        <span className={over ? 'font-bold' : 'font-medium'}>{formatCurrency(spent)}</span>
+                        <span> out of </span>
+                        <span className="font-medium">{formatCurrency(amt)}</span>
                       </div>
-                    {expanded[Number(b.id)] && (
-                      <div className="mt-3 border-t border-gray-200 pt-3">
-                        {txns.length === 0 ? (
-                          <div className="text-xs text-gray-600">No expenses for this category in {selectedMonth}.</div>
-                        ) : (
-                          <div className="space-y-2">
-                            {txns.map((t: any) => (
-                              <div key={String((t as any).id)} className="flex items-center justify-between text-sm">
-                                <div className="flex-1 pr-3">
-                                  <div className="font-medium text-gray-900">{String((t as any).name || (t as any).merchant_name || 'Unknown')}</div>
-                                  <div className="text-xs text-gray-600">{formatDate(String((t as any).date || ''))}</div>
-                                </div>
-                                <div className="text-right font-semibold text-gray-900">{formatCurrency(Math.abs(asNumber((t as any).amount)))}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -410,16 +374,16 @@ export const Budgets = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
+            <MinimalSelect
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              size="md"
             >
               <option value="">Select a category</option>
               {BUDGET_CATEGORY_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </MinimalSelect>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
@@ -448,15 +412,15 @@ export const Budgets = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
+            <MinimalSelect
               value={editCategory}
               onChange={(e) => setEditCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              size="md"
             >
               {BUDGET_CATEGORY_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </MinimalSelect>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
