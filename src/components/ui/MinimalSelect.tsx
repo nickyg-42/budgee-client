@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 
 type Size = 'sm' | 'md';
 
-interface MinimalSelectProps extends PropsWithChildren<SelectHTMLAttributes<HTMLSelectElement>> {
+interface MinimalSelectProps extends PropsWithChildren<Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'>> {
   size?: Size;
 }
 
