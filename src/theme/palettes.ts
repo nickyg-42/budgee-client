@@ -26,24 +26,24 @@ export const earthPalette: ThemePalette = {
 };
 
 const earthColorMap: Record<PersonalFinanceCategory, string> = {
-  INCOME: '#2F6F55',
-  LOAN_DISBURSEMENTS: '#2C7A7B',
-  LOAN_PAYMENTS: '#B65C4E',
-  TRANSFER_IN: '#3A6F5C',
-  TRANSFER_OUT: '#5B6B7A',
-  BANK_FEES: '#B0893F',
-  ENTERTAINMENT: '#A05A5A',
-  FOOD_AND_DRINK: '#C49A6C',
-  GENERAL_MERCHANDISE: '#6B8E23',
-  HOME_IMPROVEMENT: '#8B5A2B',
-  MEDICAL: '#3D6F63',
-  PERSONAL_CARE: '#7D8E6A',
-  GENERAL_SERVICES: '#2C7A7B',
-  GOVERNMENT_AND_NON_PROFIT: '#445A7C',
-  TRANSPORTATION: '#A0622B',
-  TRAVEL: '#3A6F5C',
-  RENT_AND_UTILITIES: '#7A3F2B',
-  OTHER: '#6B7280',
+  INCOME: '#2F4F3E',                 // Forest Green
+  LOAN_DISBURSEMENTS: '#7B8A5A',     // Moss Green
+  LOAN_PAYMENTS: '#5C3A2E',          // Walnut Brown
+  TRANSFER_IN: '#9BAF8A',            // Sage Green
+  TRANSFER_OUT: '#8A8D84',           // Stone Gray
+  BANK_FEES: '#3F2A23',              // Dark Umber
+  ENTERTAINMENT: '#B88A5A',          // Soft Ochre
+  FOOD_AND_DRINK: '#C9A27E',          // Desert Clay
+  GENERAL_MERCHANDISE: '#D8CBB0',    // Warm Linen
+  HOME_IMPROVEMENT: '#8F4A32',       // Terracotta
+  MEDICAL: '#6F7C45',                // Olive Leaf
+  PERSONAL_CARE: '#E6D8B8',          // Sandstone
+  GENERAL_SERVICES: '#5E625C',       // Warm Slate
+  GOVERNMENT_AND_NON_PROFIT: '#7A3F2C', // Rust
+  TRANSPORTATION: '#A45A3F',         // Burnt Sienna
+  TRAVEL: '#B88A5A',                 // Soft Ochre (warm, aspirational)
+  RENT_AND_UTILITIES: '#1F3A2D',     // Deep Pine
+  OTHER: '#6B7280',                  
 };
 
 /* =========================

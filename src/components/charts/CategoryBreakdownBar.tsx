@@ -19,8 +19,8 @@ export default function CategoryBreakdownBar({ data }: Props) {
       .filter((d) => d.amount > 0);
     const total = normalized.reduce((s, x) => s + x.amount, 0);
     const sorted = normalized.sort((a, b) => b.amount - a.amount);
-    const top = sorted.slice(0, 3);
-    const remainder = sorted.slice(3);
+    const top = sorted.slice(0, 5);
+    const remainder = sorted.slice(5);
     const otherTotal = remainder.reduce((s, x) => s + x.amount, 0);
     const withOther = otherTotal > 0 ? [...top, { category: 'OTHER', amount: otherTotal }] : top;
     return { total, entries: withOther };
@@ -47,7 +47,7 @@ export default function CategoryBreakdownBar({ data }: Props) {
       </div>
       <div className="space-y-2">
         {items.entries.map((e, idx) => {
-          const label = getCategoryLabelFromConstants(e.category);
+          const label = e.category === 'OTHER' ? 'Other categories' : getCategoryLabelFromConstants(e.category);
           return (
             <div key={`${e.category}-legend-${idx}`} className="flex items-center justify-between">
               <div className="flex items-center">

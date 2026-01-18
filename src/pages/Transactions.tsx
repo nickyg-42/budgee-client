@@ -772,7 +772,7 @@ export const Transactions = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-gray-900">{amountDisplay}</div>
+                      <div className={`text-sm font-semibold ${income ? 'text-green-600' : 'text-gray-900'}`}>{amountDisplay}</div>
                       <div className="text-xs text-gray-600 mt-1">{formatYMD(String((t as any).date || ''))}</div>
                     </div>
                   </div>
