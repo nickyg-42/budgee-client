@@ -40,11 +40,17 @@ export const IncomeExpenseChart = ({ data, title, height = 520 }: IncomeExpenseC
       </div>
     );
   };
+  const compact = height < 400;
   return (
     <div className="w-full" style={{ height }}>
       {title && <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barCategoryGap="40%" barGap={2}>
+        <BarChart
+          data={data}
+          margin={compact ? { top: 12, right: 12, left: 12, bottom: 0 } : { top: 20, right: 30, left: 20, bottom: 5 }}
+          barCategoryGap="40%"
+          barGap={2}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 
             dataKey="month" 

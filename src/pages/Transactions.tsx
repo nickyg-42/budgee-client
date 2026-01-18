@@ -487,7 +487,7 @@ export const Transactions = () => {
         </div>
       )}
       {/* Date Range and Chart */}
-      <div className="mb-8">
+      <div className="mb-8 hidden md:block">
         <div className="flex items-center justify-center mb-6">
           <div className="flex items-center space-x-4">
             <button
@@ -569,7 +569,7 @@ export const Transactions = () => {
               </MinimalSelect>
               <span className="text-sm text-gray-600">out of {filteredTransactions.length}</span>
             </div>
-            <div className="flex items-center space-x-2 relative">
+            <div className="hidden md:flex items-center space-x-2 relative">
               <button
                 onClick={() => setIsColumnsOpen((v) => !v)}
                 className="px-3 py-1 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
@@ -643,6 +643,7 @@ export const Transactions = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                <div className="hidden md:block">
                 <FilterPill
                   label="Account"
                   options={(accounts || []).map(acc => ({ value: String(acc.id), label: String(acc.name || 'Unknown') }))}
@@ -650,6 +651,8 @@ export const Transactions = () => {
                   onChange={(next) => { setTransactionFilters({ accounts: next }); setCurrentPage(1); }}
                   summary={(Array.isArray(transactionFilters.accounts) && transactionFilters.accounts.length > 0) ? `${transactionFilters.accounts.length} selected` : 'All'}
                 />
+                </div>
+                <div className="hidden md:block">
                 <FilterPill
                   label="Primary Category"
                   options={sortedCategoryOptions.map(opt => ({ value: opt.value, label: opt.label }))}
@@ -657,6 +660,8 @@ export const Transactions = () => {
                   onChange={(next) => { setTransactionFilters({ primary_categories: next }); setCurrentPage(1); }}
                   summary={(Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0) ? `${transactionFilters.primary_categories.length} selected` : 'All'}
                 />
+                </div>
+                <div className="">
                 <FilterPill
                   label="Month"
                   options={monthOptions.map(opt => ({ value: opt.value, label: opt.label }))}
@@ -664,9 +669,10 @@ export const Transactions = () => {
                   onChange={(next) => { setTransactionFilters({ months: next }); setCurrentPage(1); }}
                   summary={(Array.isArray(transactionFilters.months) && transactionFilters.months.length > 0) ? `${transactionFilters.months.length} selected` : 'All'}
                 />
+                </div>
               </div>
               {transactionTableColumns?.payment_channel && (
-                <div className="mt-3 w-52">
+                <div className="hidden md:block mt-3 w-52">
                   <span className="text-sm font-medium">Payment Channel</span>
                   <select
                     value={transactionFilters.payment_channel}
@@ -681,7 +687,7 @@ export const Transactions = () => {
                 </div>
               )}
               {transactionTableColumns?.detailed_category && (
-                <div className="mt-3 w-64">
+                <div className="hidden md:block mt-3 w-64">
                   <span className="text-sm font-medium">Detailed Category</span>
                   <select
                     value={transactionFilters.detailed_category}
@@ -699,7 +705,7 @@ export const Transactions = () => {
           </div>
           
           {/* Transactions Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 text-left text-xs font-medium text-gray-600">
@@ -746,6 +752,33 @@ export const Transactions = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Mobile list */}
+          <div className="block md:hidden">
+            <div className="divide-y divide-gray-200">
+              {sortedTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((t: any) => {
+                const amt = asNumber(t?.amount);
+                const income = isIncomeFlag(t);
+                const amountDisplay = income ? `+${formatCurrency(Math.abs(amt))}` : formatCurrency(Math.abs(amt));
+                return (
+                  <div key={String((t as any).id)} className="px-4 py-4 flex items-start justify-between">
+                    <div className="flex items-start pr-4">
+                      <div className="mr-3 mt-0.5">
+                        <PersonalFinanceIcon category={safePrimaryCategory(t)} size={24} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{String((t as any).name || 'Unknown')}</div>
+                        <div className="text-xs text-gray-600 mt-1">{getAccountName((t as any).account_id)}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900">{amountDisplay}</div>
+                      <div className="text-xs text-gray-600 mt-1">{formatYMD(String((t as any).date || ''))}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="flex items-center justify-between p-4 border-t border-gray-200">
             <div className="text-sm text-gray-600">

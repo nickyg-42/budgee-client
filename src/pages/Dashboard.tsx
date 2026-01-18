@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { CategoryChart } from '../components/charts/CategoryChart';
+import CategoryBreakdownBar from '../components/charts/CategoryBreakdownBar';
 import { YearlyCategoryChart } from '../components/charts/YearlyCategoryChart';
 import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { useAppStore } from '../stores/appStore';
@@ -226,14 +227,14 @@ export const Dashboard = () => {
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center text-blue-500 mb-2">
-                  <PiggyBank className="w-5 h-5 mr-2" />
+                  <PiggyBank className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Savings Rate</span>
                 </div>
-                <div className="text-3xl font-bold mb-1 text-black">
+                <div className="text-xl md:text-3xl font-bold mb-1 text-black">
                   {formatPercentage(currentMonthStats.savings_rate)}
                 </div>
                 <p className="text-sm text-gray-600">
@@ -249,21 +250,21 @@ export const Dashboard = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center text-blue-500 mb-2">
-                  <Calendar className="w-5 h-5 mr-2" />
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Expenses</span>
                 </div>
-                <div className="text-3xl font-bold mb-1 text-black">
+                <div className="text-xl md:text-3xl font-bold mb-1 text-black">
                   {formatCurrency(currentMonthStats.expenses)}
                 </div>
                 <div className={`flex items-center text-sm mb-1 ${expenseChangeValue > 0 ? 'text-green-600' : 'text-black'}`}>
                   {expenseChangeValue > 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <TrendingUp className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
+                    <TrendingDown className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   )}
                   {expenseChange}
                 </div>
@@ -276,21 +277,21 @@ export const Dashboard = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center text-blue-500 mb-2">
-                  <Calendar className="w-5 h-5 mr-2" />
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                   <span className="text-sm font-medium">{currentMonthLabel} Income</span>
                 </div>
-                <div className="text-3xl font-bold mb-1 text-green-600">
+                <div className="text-xl md:text-3xl font-bold mb-1 text-green-600">
                   {`+${formatCurrency(currentMonthStats.income)}`}
                 </div>
                 <div className={`flex items-center text-sm mb-1 ${incomeChangeValue > 0 ? 'text-green-600' : 'text-black'}`}>
                   {incomeChangeValue > 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <TrendingUp className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
+                    <TrendingDown className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   )}
                   {incomeChange}
                 </div>
@@ -307,12 +308,12 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-sm text-gray-600">Monthly Spending Breakdown</span>
               <MinimalSelect
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-auto"
+                className="w-auto ml-2"
               >
                 {monthOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -330,7 +331,16 @@ export const Dashboard = () => {
               });
               const hasExpenses = d.some((t: any) => (t as any)?.expense === true);
               if (!hasExpenses) {
-                return <CategoryChart data={[{ category: 'DEFAULT', amount: -0, percentage: 0 }]} height={520} transactionsForMonth={d as any} selectedMonth={ym} />;
+                return (
+                  <>
+                    <div className="hidden md:block">
+                      <CategoryChart data={[{ category: 'DEFAULT', amount: -0, percentage: 0 }]} height={520} transactionsForMonth={d as any} selectedMonth={ym} />
+                    </div>
+                    <div className="block md:hidden">
+                      <CategoryBreakdownBar data={[{ category: 'OTHER', amount: 0, percentage: 0 }]} />
+                    </div>
+                  </>
+                );
               }
               const grouped = new Map<string, number>();
               d.forEach((t: any) => {
@@ -342,7 +352,16 @@ export const Dashboard = () => {
                 }
               });
               const data = Array.from(grouped.entries()).map(([category, amount]) => ({ category, amount: -amount, percentage: 0 }));
-              return <CategoryChart data={data} height={520} transactionsForMonth={d as any} selectedMonth={ym} />;
+              return (
+                <>
+                  <div className="hidden md:block">
+                    <CategoryChart data={data} height={520} transactionsForMonth={d as any} selectedMonth={ym} />
+                  </div>
+                  <div className="block md:hidden">
+                    <CategoryBreakdownBar data={data as any} />
+                  </div>
+                </>
+              );
             })()}
           </CardContent>
         </Card>
@@ -371,8 +390,13 @@ export const Dashboard = () => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} height={560} />
+          <CardContent className="p-3 md:p-6">
+            <div className="hidden md:block">
+              <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} height={560} />
+            </div>
+            <div className="block md:hidden">
+              <IncomeExpenseChart data={chartMode === 'months' ? sixMonthData : yearlyAgg} height={280} />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -414,7 +438,7 @@ export const Dashboard = () => {
       </div> */}
       
       {/* Yearly Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
+      <div className="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
         <Card className="self-start">
           <CardHeader>
             <div className="flex items-center justify-between">

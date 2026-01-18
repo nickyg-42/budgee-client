@@ -274,9 +274,10 @@ export const TransactionRules = () => {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Transaction Rules</CardTitle>
-            {headerActions}
+            <div className="hidden md:block">{headerActions}</div>
           </CardHeader>
             <CardContent>
+              <div className="block md:hidden mb-3">{headerActions}</div>
               {isLoading ? (
                 <div className="py-8 text-center text-gray-600">Loading...</div>
               ) : error ? (
@@ -288,19 +289,19 @@ export const TransactionRules = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th className="px-2 md:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th className="hidden md:table-cell px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                        <th className="hidden md:table-cell px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                        <th className="px-2 md:px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {rules.map(rule => (
                         <tr key={rule.id}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{rule.name}</td>
-                        <td className="px-4 py-2 text-sm text-gray-700">{getCategoryLabelFromConstants(rule.personal_finance_category)}</td>
-                          <td className="px-4 py-2 text-sm text-gray-500">{formatDateTimeLocal(rule.created_at || '')}</td>
-                          <td className="px-4 py-2 text-sm">
+                          <td className="px-2 md:px-4 py-2 text-sm text-gray-900">{rule.name}</td>
+                          <td className="hidden md:table-cell px-4 py-2 text-sm text-gray-700">{getCategoryLabelFromConstants(rule.personal_finance_category)}</td>
+                          <td className="hidden md:table-cell px-4 py-2 text-sm text-gray-500">{formatDateTimeLocal(rule.created_at || '')}</td>
+                          <td className="px-2 md:px-4 py-2 text-sm">
                             <div className="flex justify-end space-x-2">
                               <button
                                 onClick={() => openEdit(rule)}
@@ -328,7 +329,7 @@ export const TransactionRules = () => {
         </Card>
 
         <Modal open={open} title={editing ? 'Edit Rule' : 'New Rule'} onClose={() => setOpen(false)} actions={modalActions} size="lg">
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4 p-3 md:p-0">
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Name</label>
               <input
@@ -352,7 +353,7 @@ export const TransactionRules = () => {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Conditions</label>
-              <div className="rounded-md border border-blue-100 bg-blue-50 text-blue-800 p-3 text-sm mb-2">
+              <div className="hidden md:block rounded-md border border-blue-100 bg-blue-50 text-blue-800 p-3 text-sm mb-2">
                 <div className="flex items-start space-x-2">
                   <HelpCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div className="space-y-1">

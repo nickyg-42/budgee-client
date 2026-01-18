@@ -64,7 +64,7 @@ export default function App() {
           {/* Redirect unknown routes to dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <Toaster position="top-right" />
+          <Toaster position="top-right" duration={1500} />
         </Router>
       </ThemeProvider>
     </AuthProvider>

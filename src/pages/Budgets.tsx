@@ -12,6 +12,7 @@ import { MinimalSelect } from '../components/ui/MinimalSelect';
 import { useAppStore } from '../stores/appStore';
 import { toast } from 'sonner';
 import { CategoryChart } from '../components/charts/CategoryChart';
+import CategoryBreakdownBar from '../components/charts/CategoryBreakdownBar';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
 
@@ -264,7 +265,7 @@ export const Budgets = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-800">Monthly Budgets</span>
               <div className="flex items-center space-x-3">
-              <span className="text-xs text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
+                <span className="hidden md:inline text-xs text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
                 <MinimalSelect
                   size="sm"
                   value={selectedMonth}
@@ -275,8 +276,10 @@ export const Budgets = () => {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </MinimalSelect>
-                {/* Removed expand/collapse all controls */}
               </div>
+            </div>
+            <div className="block md:hidden mt-2">
+              <span className="text-xs text-gray-700">Month progress: <span className="font-bold">{monthProgressPct}%</span></span>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -340,7 +343,7 @@ export const Budgets = () => {
         </Card>
         <Card>
           <CardHeader>
-            <div className="flex justify-end mb-4 text-sm text-gray-600">Monthly Spending Breakdown</div>
+            <div className="flex justify-start mb-4 text-sm text-gray-600">Monthly Spending Breakdown</div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center">
@@ -352,7 +355,16 @@ export const Budgets = () => {
                     const txm = String(v || '').slice(0, 7);
                     return txm === ym;
                   });
-                  return <CategoryChart data={categoryChartData} height={560} transactionsForMonth={monthTxns as any} selectedMonth={ym} />;
+                  return (
+                    <>
+                      <div className="hidden md:block">
+                        <CategoryChart data={categoryChartData} height={560} transactionsForMonth={monthTxns as any} selectedMonth={ym} />
+                      </div>
+                      <div className="block md:hidden">
+                        <CategoryBreakdownBar data={categoryChartData as any} />
+                      </div>
+                    </>
+                  );
                 })()}
               </div>
             </div>
