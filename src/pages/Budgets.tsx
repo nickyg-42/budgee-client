@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { apiService } from '../services/api';
 import { Budget, Transaction } from '../types';
-import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORIES, PersonalFinanceCategory, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getAnyCategoryLabel, isDetailedCategory, getParentCategory } from '../constants/personalFinanceCategories';
 import { formatCurrency, formatDate, monthLabel } from '../utils/formatters';
 import { Plus, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { PillButton } from '../components/ui/PillButton';
@@ -15,9 +15,10 @@ import { CategoryChart } from '../components/charts/CategoryChart';
 import CategoryBreakdownBar from '../components/charts/CategoryBreakdownBar';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
+import { CategoryPicker } from '../components/ui/CategoryPicker';
 
-const isValidCategory = (c: string): c is PersonalFinanceCategory =>
-  (PERSONAL_FINANCE_CATEGORIES as readonly string[]).includes(c);
+const isValidCategory = (c: string): boolean =>
+  (PERSONAL_FINANCE_CATEGORIES as readonly string[]).includes(c) || isDetailedCategory(c);
 const EXCLUDED_BUDGET_CATEGORIES: readonly PersonalFinanceCategory[] = [
   'INCOME',
   'LOAN_DISBURSEMENTS',
@@ -29,7 +30,7 @@ const BUDGET_CATEGORY_OPTIONS = PERSONAL_FINANCE_CATEGORY_OPTIONS.filter(
 
 export const Budgets = () => {
   const { transactions, setTransactions, setAccounts, setPlaidItems } = useAppStore();
-  const { progress, semantic } = useTheme();
+  const { progress, semantic, getCategoryColor } = useTheme();
   const lightenWithWhite = (hex: string, t: number) => {
     const h = String(hex || '').replace('#', '');
     const r = parseInt(h.slice(0, 2), 16);
@@ -147,15 +148,31 @@ export const Budgets = () => {
       const txm = String(v || '').slice(0, 7);
       if (txm !== ym) return;
       if ((t as any).expense !== true) return;
-      const cat = String((t as any).primary_category || 'OTHER');
-      const prev = map.get(cat) || 0;
-      map.set(cat, prev + Math.abs(asNumber((t as any).amount)));
+      const amt = Math.abs(asNumber((t as any).amount));
+      const primaryCat = String((t as any).primary_category || 'OTHER');
+      const detailedCat = String((t as any).detailed_category || '');
+      // Accumulate under primary category
+      map.set(primaryCat, (map.get(primaryCat) || 0) + amt);
+      // Also accumulate under detailed category if present
+      if (detailedCat) {
+        map.set(detailedCat, (map.get(detailedCat) || 0) + amt);
+      }
     });
     return map;
   }, [transactions, selectedMonth]);
 
+  const monthlyIncome = useMemo(() => {
+    const ym = selectedMonth;
+    return (transactions || []).reduce((sum, t: any) => {
+      const txm = String(t?.date || '').slice(0, 7);
+      if (txm !== ym || t?.income !== true) return sum;
+      return sum + Math.abs(asNumber(t?.amount));
+    }, 0);
+  }, [transactions, selectedMonth]);
+
   const categoryChartData = useMemo(() => {
-    const entries = Array.from(currentMonthSpentByCategory.entries());
+    const entries = Array.from(currentMonthSpentByCategory.entries())
+      .filter(([category]) => (PERSONAL_FINANCE_CATEGORIES as readonly string[]).includes(category));
     if (entries.length === 0) {
       return [{ category: 'DEFAULT', amount: -0, percentage: 0 }];
     }
@@ -259,6 +276,76 @@ export const Budgets = () => {
         </PillButton>
       </div>
 
+      {/* Budget Allocation Gauge */}
+      {budgets.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-800">Budget Allocation</span>
+              <span className="text-sm font-semibold" style={{ color: semantic.good }}>
+                {monthlyIncome > 0 ? formatCurrency(monthlyIncome) : 'No income data'}
+                {monthlyIncome > 0 && <span className="text-xs font-normal text-gray-500 ml-1">monthly income</span>}
+              </span>
+            </div>
+            {(() => {
+              const totalBudgeted = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
+              const hasIncome = monthlyIncome > 0;
+              const capacity = hasIncome ? monthlyIncome : totalBudgeted;
+              const overAllocated = hasIncome && totalBudgeted > monthlyIncome;
+              const unallocated = hasIncome ? monthlyIncome - totalBudgeted : 0;
+              const allocPct = hasIncome ? Math.round((totalBudgeted / monthlyIncome) * 100) : 100;
+              const sorted = [...budgets].sort((a, b) => String(a.personal_finance_category).localeCompare(String(b.personal_finance_category)));
+              const denominator = overAllocated ? totalBudgeted : capacity;
+
+              return (
+                <>
+                  <div className="relative h-6 bg-gray-200 rounded-lg overflow-hidden flex">
+                    {sorted.map((b) => {
+                      const budgetCat = String(b.personal_finance_category);
+                      const catColor = getCategoryColor(isDetailedCategory(budgetCat) ? getParentCategory(budgetCat) : budgetCat);
+                      const widthPct = denominator > 0 ? (Number(b.amount) / denominator) * 100 : 0;
+                      return (
+                        <div
+                          key={b.id}
+                          className="h-full transition-all duration-300"
+                          style={{
+                            width: `${widthPct}%`,
+                            backgroundColor: catColor,
+                            minWidth: widthPct > 0 ? '2px' : '0',
+                          }}
+                          title={`${getAnyCategoryLabel(budgetCat)}: ${formatCurrency(Number(b.amount))}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  {overAllocated && (
+                    <div className="h-1 rounded-b-lg mt-0.5" style={{ backgroundColor: semantic.bad, opacity: 0.6 }} />
+                  )}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
+                    <span>Total Budgeted: <span className="font-semibold text-gray-800">{formatCurrency(totalBudgeted)}</span></span>
+                    {hasIncome ? (
+                      overAllocated ? (
+                        <span>Over-allocated: <span className="font-semibold" style={{ color: semantic.bad }}>{formatCurrency(totalBudgeted - monthlyIncome)}</span></span>
+                      ) : (
+                        <span>Unallocated: <span className="font-semibold text-gray-800">{formatCurrency(unallocated)}</span></span>
+                      )
+                    ) : null}
+                    {hasIncome && (
+                      <span>
+                        Allocated:{' '}
+                        <span className={`font-semibold ${overAllocated ? '' : 'text-gray-800'}`} style={overAllocated ? { color: semantic.bad } : undefined}>
+                          {allocPct}%
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
         <Card>
           <CardHeader>
@@ -295,23 +382,31 @@ export const Budgets = () => {
                 const ratio = amt > 0 ? spent / amt : 0;
                 const fillPct = Math.min(100, Math.round(ratio * 100));
                 const over = spent > amt;
-                const color = semantic.good;
-                const light = lightenWithWhite(semantic.good, 0.6);
+                const budgetCat = String(b.personal_finance_category);
+                const budgetIsDetailed = isDetailedCategory(budgetCat);
+                const catColor = getCategoryColor(budgetIsDetailed ? getParentCategory(budgetCat) : budgetCat);
+                const color = catColor;
+                const light = lightenWithWhite(catColor, 0.6);
                 const txns = (transactions || []).filter((t: any) => {
                   const v: any = (t as Transaction).date;
                   const txm = String(v || '').slice(0, 7);
                   if (txm !== selectedMonth) return false;
                   if ((t as any).expense !== true) return false;
-                  const cat = String((t as any).primary_category || 'OTHER');
-                  return cat === String(b.personal_finance_category);
+                  if (budgetIsDetailed) {
+                    return String((t as any).detailed_category || '') === budgetCat;
+                  }
+                  return String((t as any).primary_category || 'OTHER') === budgetCat;
                 });
                 return (
                   <div key={b.id} className="border border-gray-200 rounded-md p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex">
-                          <PersonalFinanceIcon category={String(b.personal_finance_category)} size={20} className="mr-3 mt-0.5" />
+                          <PersonalFinanceIcon category={isDetailedCategory(String(b.personal_finance_category)) ? getParentCategory(String(b.personal_finance_category)) : String(b.personal_finance_category)} size={20} className="mr-3 mt-0.5" />
                           <div className="flex flex-col">
-                            <div className="text-sm font-semibold text-gray-900">{getCategoryLabelFromConstants(String(b.personal_finance_category))}</div>
+                            <div className="text-sm font-semibold text-gray-900">{getAnyCategoryLabel(String(b.personal_finance_category))}</div>
+                            {isDetailedCategory(String(b.personal_finance_category)) && (
+                              <div className="text-xs text-gray-500">{getCategoryLabelFromConstants(getParentCategory(String(b.personal_finance_category)))}</div>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -337,6 +432,34 @@ export const Budgets = () => {
                   </div>
                 );
               })}
+              {(() => {
+                const totalBudgeted = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
+                const totalSpent = budgets.reduce((sum, b) => sum + (currentMonthSpentByCategory.get(String(b.personal_finance_category)) || 0), 0);
+                const totalRatio = totalBudgeted > 0 ? totalSpent / totalBudgeted : 0;
+                const totalFillPct = Math.min(100, Math.round(totalRatio * 100));
+                const totalOver = totalSpent > totalBudgeted;
+                const barColor = getBarColor(Math.round(totalRatio * 100));
+                const totalLight = lightenWithWhite(barColor, 0.6);
+                return (
+                  <div className="border-t border-gray-300 pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-900">Total</span>
+                      <span className="text-sm text-gray-600">{totalFillPct}% used</span>
+                    </div>
+                    <div className="relative h-5 bg-gray-100 rounded-lg mb-2">
+                      <div
+                        className="h-full rounded-lg"
+                        style={{ width: `${totalFillPct}%`, backgroundImage: `linear-gradient(90deg, ${totalLight} 0%, ${barColor} 100%)` }}
+                      ></div>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-800">
+                      <span className={totalOver ? 'font-bold' : 'font-medium'}>{formatCurrency(totalSpent)}</span>
+                      <span> out of </span>
+                      <span className="font-medium">{formatCurrency(totalBudgeted)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               </div>
             )}
           </CardContent>
@@ -361,7 +484,7 @@ export const Budgets = () => {
                         <CategoryChart data={categoryChartData} height={560} transactionsForMonth={monthTxns as any} selectedMonth={ym} />
                       </div>
                       <div className="block md:hidden">
-                        <CategoryBreakdownBar data={categoryChartData as any} />
+                        <CategoryBreakdownBar data={categoryChartData as any} transactionsForMonth={monthTxns as any} />
                       </div>
                     </>
                   );
@@ -383,19 +506,15 @@ export const Budgets = () => {
           </>
         )}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 min-h-[340px]">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <MinimalSelect
+            <CategoryPicker
               value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              size="md"
-            >
-              <option value="">Select a category</option>
-              {BUDGET_CATEGORY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </MinimalSelect>
+              onChange={(cat) => setNewCategory(cat)}
+              excludeCategories={EXCLUDED_BUDGET_CATEGORIES as unknown as string[]}
+              placeholder="Select a category"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
@@ -424,15 +543,11 @@ export const Budgets = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <MinimalSelect
+            <CategoryPicker
               value={editCategory}
-              onChange={(e) => setEditCategory(e.target.value)}
-              size="md"
-            >
-              {BUDGET_CATEGORY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </MinimalSelect>
+              onChange={(cat) => setEditCategory(cat)}
+              excludeCategories={EXCLUDED_BUDGET_CATEGORIES as unknown as string[]}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>

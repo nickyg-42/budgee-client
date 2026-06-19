@@ -11,10 +11,11 @@ import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
 import { FilterPill } from '../components/ui/FilterPill';
 import { PillButton } from '../components/ui/PillButton';
 import { MinimalSelect } from '../components/ui/MinimalSelect';
-import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getDetailedCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORIES, PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getDetailedCategoryLabelFromConstants, isDetailedCategory, getParentCategory, getAnyCategoryLabel } from '../constants/personalFinanceCategories';
 import { useTheme } from '../theme/ThemeContext';
 import { PersonalFinanceIcon } from '../components/icons/PersonalFinanceIcon';
 import { SingleSlider } from '../components/ui/SingleSlider';
+import { CategoryPicker } from '../components/ui/CategoryPicker';
 
 export const Transactions = () => {
   const { transactions, setTransactions, transactionFilters, setTransactionFilters, accounts, setAccounts, plaidItems, setPlaidItems, transactionTableColumns, setTransactionTableColumns } = useAppStore();
@@ -200,12 +201,18 @@ export const Transactions = () => {
 
   const detailedCategoryOptions = useMemo(() => {
     const set = new Set<string>();
+    const selectedPrimaries = Array.isArray(transactionFilters.primary_categories) ? transactionFilters.primary_categories : [];
     (transactions || []).forEach((t: any) => {
       const v = (t as any)?.detailed_category;
-      if (v) set.add(String(v));
+      if (!v) return;
+      if (selectedPrimaries.length > 0) {
+        const pc = String((t as any)?.primary_category || '');
+        if (!selectedPrimaries.includes(pc)) return;
+      }
+      set.add(String(v));
     });
-    return Array.from(set);
-  }, [transactions]);
+    return Array.from(set).sort();
+  }, [transactions, transactionFilters.primary_categories]);
   const sortedCategoryOptions = useMemo(() => {
     const priority = ['Rent & Utilities', 'Food & Drink', 'Income'];
     const indexOf = (label: string) => {
@@ -245,7 +252,10 @@ export const Transactions = () => {
       const pc = String((transaction as any)?.payment_channel || '');
       if (pc !== transactionFilters.payment_channel) return false;
     }
-    if (transactionFilters.detailed_category !== 'All') {
+    if (Array.isArray(transactionFilters.detailed_categories) && transactionFilters.detailed_categories.length > 0) {
+      const dc = String((transaction as any)?.detailed_category || '');
+      if (!transactionFilters.detailed_categories.includes(dc)) return false;
+    } else if (transactionFilters.detailed_category !== 'All') {
       const dc = String((transaction as any)?.detailed_category || '');
       if (dc !== transactionFilters.detailed_category) return false;
     }
@@ -379,7 +389,7 @@ export const Transactions = () => {
               className="w-4 h-4"
               onClick={() => {
                 setEditTx(transaction);
-                setEditCategory(safePrimaryCategory(transaction));
+                setEditCategory((transaction as any).detailed_category || safePrimaryCategory(transaction));
                 setEditName((transaction as any).name || '');
                 setEditMerchantName(transaction.merchant_name || safeName(transaction));
                 setEditDate((transaction as any).date ? String((transaction as any).date).slice(0, 10) : '');
@@ -659,6 +669,15 @@ export const Transactions = () => {
                   selected={Array.isArray(transactionFilters.primary_categories) ? transactionFilters.primary_categories : []}
                   onChange={(next) => { setTransactionFilters({ primary_categories: next }); setCurrentPage(1); }}
                   summary={(Array.isArray(transactionFilters.primary_categories) && transactionFilters.primary_categories.length > 0) ? `${transactionFilters.primary_categories.length} selected` : 'All'}
+                />
+                </div>
+                <div className="hidden md:block">
+                <FilterPill
+                  label="Detailed Category"
+                  options={detailedCategoryOptions.map(dc => ({ value: dc, label: getAnyCategoryLabel(dc) }))}
+                  selected={Array.isArray(transactionFilters.detailed_categories) ? transactionFilters.detailed_categories : []}
+                  onChange={(next) => { setTransactionFilters({ detailed_categories: next }); setCurrentPage(1); }}
+                  summary={(Array.isArray(transactionFilters.detailed_categories) && transactionFilters.detailed_categories.length > 0) ? `${transactionFilters.detailed_categories.length} selected` : 'All'}
                 />
                 </div>
                 <div className="">
@@ -970,8 +989,10 @@ export const Transactions = () => {
                 if (!editTx) return;
                 try {
                   const id = String((editTx as any).id);
+                  const isDetailed = isDetailedCategory(editCategory);
                   const payload: any = {
-                    primary_category: editCategory,
+                    primary_category: isDetailed ? getParentCategory(editCategory) : editCategory,
+                    detailed_category: isDetailed ? editCategory : undefined,
                     name: editName,
                     merchant_name: editMerchantName,
                     date: editDate,
@@ -1012,15 +1033,10 @@ export const Transactions = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-              {PERSONAL_FINANCE_CATEGORIES.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-              </select>
+            <CategoryPicker
+              value={editCategory}
+              onChange={(cat) => setEditCategory(cat)}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>

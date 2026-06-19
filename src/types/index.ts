@@ -79,6 +79,7 @@ export interface FilterOptions {
   primary_category?: string;
   payment_channel: string;
   detailed_category: string;
+  detailed_categories?: string[];
   tags: string;
   date_from?: string;
   date_to?: string;

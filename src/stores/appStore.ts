@@ -51,6 +51,7 @@ const initialFilters: FilterOptions = (() => {
     primary_category: 'All',
     payment_channel: 'All',
     detailed_category: 'All',
+    detailed_categories: [],
     tags: 'All',
     date_from: '',
     date_to: '',

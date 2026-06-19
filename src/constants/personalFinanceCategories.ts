@@ -337,3 +337,34 @@ export const getDetailedCategoryLabelFromConstants = (detailed: string): string 
   const key = String(detailed || '') as PersonalFinanceDetailedCategory;
   return PERSONAL_FINANCE_DETAILED_CATEGORY_LABELS[key] ?? '';
 };
+
+/** Map each primary category to its detailed subcategories */
+export const PRIMARY_TO_DETAILED_MAP: Record<PersonalFinanceCategory, PersonalFinanceDetailedCategory[]> =
+  PERSONAL_FINANCE_CATEGORIES.reduce((acc, primary) => {
+    acc[primary] = PERSONAL_FINANCE_DETAILED_CATEGORIES.filter(
+      (d) => d.startsWith(primary + '_')
+    ) as unknown as PersonalFinanceDetailedCategory[];
+    return acc;
+  }, {} as Record<PersonalFinanceCategory, PersonalFinanceDetailedCategory[]>);
+
+/** Reverse lookup: get the parent primary category for a detailed category key */
+export const getParentCategory = (detailed: string): PersonalFinanceCategory => {
+  const s = String(detailed || '');
+  for (const primary of PERSONAL_FINANCE_CATEGORIES) {
+    if (s.startsWith(primary + '_')) return primary;
+  }
+  return s as PersonalFinanceCategory;
+};
+
+/** Universal label lookup — tries primary labels first, then detailed labels */
+export const getAnyCategoryLabel = (cat: string): string => {
+  const primaryLabel = PERSONAL_FINANCE_CATEGORY_LABELS[cat as PersonalFinanceCategory];
+  if (primaryLabel) return primaryLabel;
+  const detailedLabel = PERSONAL_FINANCE_DETAILED_CATEGORY_LABELS[cat as PersonalFinanceDetailedCategory];
+  if (detailedLabel) return detailedLabel;
+  return cat;
+};
+
+/** Check if a string is a detailed category */
+export const isDetailedCategory = (cat: string): boolean =>
+  (PERSONAL_FINANCE_DETAILED_CATEGORIES as readonly string[]).includes(cat);

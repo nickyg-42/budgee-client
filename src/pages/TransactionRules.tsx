@@ -6,8 +6,9 @@ import { apiService } from '../services/api';
 import { toast } from 'sonner';
 import { ConditionsBuilder } from '../components/transactionRules/ConditionsBuilder';
 import type { TransactionRule, ConditionNode, ConditionGroup, ConditionLeaf } from '../types';
-import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants } from '../constants/personalFinanceCategories';
+import { PERSONAL_FINANCE_CATEGORY_OPTIONS, getCategoryLabelFromConstants, getAnyCategoryLabel } from '../constants/personalFinanceCategories';
 import { MinimalSelect } from '../components/ui/MinimalSelect';
+import { CategoryPicker } from '../components/ui/CategoryPicker';
 import { Plus, Pencil, Trash2, PlayCircle, HelpCircle } from 'lucide-react';
 import { PillButton } from '../components/ui/PillButton';
 import { formatDateTimeLocal } from '@/utils/formatters';
@@ -299,7 +300,7 @@ export const TransactionRules = () => {
                       {rules.map(rule => (
                         <tr key={rule.id}>
                           <td className="px-2 md:px-4 py-2 text-sm text-gray-900">{rule.name}</td>
-                          <td className="hidden md:table-cell px-4 py-2 text-sm text-gray-700">{getCategoryLabelFromConstants(rule.personal_finance_category)}</td>
+                          <td className="hidden md:table-cell px-4 py-2 text-sm text-gray-700">{getAnyCategoryLabel(rule.personal_finance_category)}</td>
                           <td className="hidden md:table-cell px-4 py-2 text-sm text-gray-500">{formatDateTimeLocal(rule.created_at || '')}</td>
                           <td className="px-2 md:px-4 py-2 text-sm">
                             <div className="flex justify-end space-x-2">
@@ -342,14 +343,10 @@ export const TransactionRules = () => {
             </div>
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Category</label>
-              <MinimalSelect
+              <CategoryPicker
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {PERSONAL_FINANCE_CATEGORY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </MinimalSelect>
+                onChange={(cat) => setCategory(cat)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-sm text-gray-700">Conditions</label>

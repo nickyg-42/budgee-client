@@ -358,7 +358,7 @@ export const Dashboard = () => {
                     <CategoryChart data={data} height={520} transactionsForMonth={d as any} selectedMonth={ym} />
                   </div>
                   <div className="block md:hidden">
-                    <CategoryBreakdownBar data={data as any} />
+                    <CategoryBreakdownBar data={data as any} transactionsForMonth={d as any} />
                   </div>
                 </>
               );

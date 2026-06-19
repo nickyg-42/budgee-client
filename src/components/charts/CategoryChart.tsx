@@ -2,10 +2,11 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { CategorySpending } from '../../types';
 import { formatCurrency, formatYMD } from '../../utils/formatters';
-import { getCategoryLabelFromConstants } from '../../constants/personalFinanceCategories';
+import { getCategoryLabelFromConstants, getAnyCategoryLabel } from '../../constants/personalFinanceCategories';
 import { useTheme } from '../../theme/ThemeContext';
 import { Transaction } from '../../types';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { generateSubcategoryColors } from '../../utils/colorUtils';
 
 interface CategoryChartProps {
   data: CategorySpending[];
@@ -101,6 +102,17 @@ export const CategoryChart = ({
     });
     return list;
   }, [transactionsForMonth, selectedRaw]);
+  const detailedBreakdown = useMemo(() => {
+    if (!selectedRaw || filteredTxns.length === 0) return [];
+    const map = new Map<string, number>();
+    filteredTxns.forEach((t: any) => {
+      const dc = String((t as any)?.detailed_category || 'Other');
+      map.set(dc, (map.get(dc) || 0) + Math.abs(Number((t as any)?.amount || 0)));
+    });
+    return Array.from(map.entries())
+      .map(([cat, amount]) => ({ category: cat, label: getAnyCategoryLabel(cat), amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [selectedRaw, filteredTxns]);
   const handleSortClick = (id: 'date' | 'amount') => {
     if (sortKey === id) {
       if (sortDir === 'desc') {
@@ -224,6 +236,42 @@ export const CategoryChart = ({
           </button>
         ))}
       </div>
+      {selectedRaw && detailedBreakdown.length > 1 && (() => {
+        const baseColor = getCategoryColor(selectedRaw);
+        const subColors = generateSubcategoryColors(baseColor, detailedBreakdown.length);
+        const total = detailedBreakdown.reduce((s, e) => s + e.amount, 0);
+        return (
+          <div className="mt-4 px-2">
+            <div className="text-xs font-medium text-gray-600 mb-2">Subcategory Breakdown</div>
+            <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+              <div className="flex h-full">
+                {detailedBreakdown.map((entry, idx) => {
+                  const pct = total > 0 ? (entry.amount / total) * 100 : 0;
+                  return (
+                    <div
+                      key={entry.category}
+                      className="h-full"
+                      style={{ width: `${pct}%`, backgroundColor: subColors[idx] }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+              {detailedBreakdown.map((entry, idx) => (
+                <div key={entry.category} className="flex items-center text-xs text-gray-700">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full mr-1.5"
+                    style={{ backgroundColor: subColors[idx] }}
+                  />
+                  <span>{entry.label}</span>
+                  <span className="ml-1 text-gray-500">{formatCurrency(entry.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       <div className="mt-6">
         {selectedRaw ? (
           <>

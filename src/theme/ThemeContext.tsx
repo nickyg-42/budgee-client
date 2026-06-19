@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { ThemeId, ThemePalette } from './types';
 import { getStaticPalette } from './palettes';
 import { createMonochromePalette } from './monochrome';
-import { PersonalFinanceCategory } from '../constants/personalFinanceCategories';
+import { PersonalFinanceCategory, getParentCategory } from '../constants/personalFinanceCategories';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 
@@ -87,7 +87,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getCategoryColor = (cat: string) => {
     const key = String(cat || 'OTHER') as PersonalFinanceCategory;
-    return palette.categories[key] || palette.semantic.neutral;
+    return palette.categories[key] || palette.categories[getParentCategory(cat)] || palette.semantic.neutral;
   };
 
   const value: ThemeContextValue = {
